@@ -41,7 +41,7 @@ List<String> _carouselImages = [
       appBar: AppBar(
         centerTitle: false,
         automaticallyImplyLeading: false,
-        title: Text('Hello ${profileInfo?.data?.firstName} 👋',
+        title: Text('Hello ${profileInfo?.data?.firstName??''} 👋',
           style: TextStyle(
               color: Colors.black,
               fontWeight: FontWeight.w700,
@@ -52,13 +52,14 @@ List<String> _carouselImages = [
           Consumer<AddressProvider>(
             builder: (context,address,child) {
               final addressList = address.addressList;
-              final defaultAddress = addressList.firstWhere(
+              final defaultAddress = addressList.isEmpty
+                  ? null
+                  : addressList.firstWhere(
                     (item) => item.defaut == true,
                 orElse: () => addressList.first,
               );
-              return Text( addressList.isEmpty?
-                  'Loading...':
-                cutUnwantedPart(defaultAddress.address??''),
+              return Text(
+                cutUnwantedPart(defaultAddress?.address??'Loading...'),
                 style: TextStyle(
                     color: Colors.black,
                     fontSize: 14
@@ -125,11 +126,17 @@ List<String> _carouselImages = [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _topContainers('hugeicons_discount-tag-02.png', Color(0xffFDF2DF), 'Supermarket'),
                   GestureDetector(
                     onTap: (){
                       Navigator.push(context, MaterialPageRoute(builder: (context){
-                        return Vendors();
+                        return Vendors(type: "SUPER_MARKET",);
+                      }));
+                    },
+                      child: _topContainers('hugeicons_discount-tag-02.png', Color(0xffFDF2DF), 'Supermarket')),
+                  GestureDetector(
+                    onTap: (){
+                      Navigator.push(context, MaterialPageRoute(builder: (context){
+                        return Vendors(type: "RESTAURANT",);
                       }));
                     },
                       child: _topContainers('Quick Options.png', Color(0xffFFE3D9), 'Vendors')

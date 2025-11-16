@@ -126,13 +126,9 @@ class AddressProvider with ChangeNotifier{
         jsonResponse = jsonDecode(response.body);
         final success = SuccessModel.fromJson(jsonResponse);
         print('Success: ${success.message}');
-        if(context.mounted){
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => MainHome()),
-                (route) => false,
-          );
-        }
+        globalNavigatorKey.currentState?.pushReplacement(
+          MaterialPageRoute(builder: (_) => MainHome()),
+        );
         notifyListeners();
         return success;
       } else if (response.statusCode == 400) {
@@ -184,9 +180,9 @@ class AddressProvider with ChangeNotifier{
         jsonResponse = jsonDecode(response.body);
         final success = SuccessModel.fromJson(jsonResponse);
         print('Success: ${success.message}');
-        Navigator.push(context, MaterialPageRoute(builder: (context){
-          return MainHome();
-        }));
+        globalNavigatorKey.currentState?.pushReplacement(
+          MaterialPageRoute(builder: (_) => MainHome()),
+        );
         notifyListeners();
         return success;
       } else if (response.statusCode == 400) {
@@ -278,10 +274,8 @@ class AddressProvider with ChangeNotifier{
         jsonResponse = jsonDecode(response.body);
         final success = SuccessModel.fromJson(jsonResponse);
         print('Success: ${success.message}');
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => MainHome()),
-              (route) => false,
+        globalNavigatorKey.currentState?.pushReplacement(
+          MaterialPageRoute(builder: (_) => MainHome()),
         );
         notifyListeners();
         return success;
