@@ -2,9 +2,14 @@ import 'package:chop_chop_africa/Pages/home%20page/home%20direct/home.dart';
 import 'package:chop_chop_africa/Pages/home%20page/order_direct/orders.dart';
 import 'package:chop_chop_africa/Pages/home%20page/profile%20direct/profile.dart';
 import 'package:chop_chop_africa/Pages/home%20page/support_direct/support.dart';
+import 'package:chop_chop_africa/backend/address_provider.dart';
+import 'package:chop_chop_africa/backend/profile_provider.dart';
 import 'package:chop_chop_africa/utility/iacolors.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:provider/provider.dart';
+
 
 class MainHome extends StatefulWidget {
   const MainHome({super.key,});
@@ -22,6 +27,13 @@ class _MainHomeState extends State<MainHome> {
     Profile()
   ];
 
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _getAllNecessaryBackendData();
+    _connection();
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -78,5 +90,19 @@ class _MainHomeState extends State<MainHome> {
           ]
       ),
     );
+  }
+  _connection() {
+    final Connectivity connectivity = Connectivity();
+    connectivity.onConnectivityChanged.listen((List<ConnectivityResult> results) {
+      final result = results.isNotEmpty ? results.first : ConnectivityResult.none;
+      if (result == ConnectivityResult.mobile || result == ConnectivityResult.wifi) {
+        print('gfoghfugosughdafhufhuh');
+        _getAllNecessaryBackendData();
+      }
+    });
+  }
+  _getAllNecessaryBackendData(){
+    Provider.of<AddressProvider>(context,listen: false).getAllAddresses();
+    Provider.of<ProfileProvider>(context,listen: false).getProfile();
   }
 }

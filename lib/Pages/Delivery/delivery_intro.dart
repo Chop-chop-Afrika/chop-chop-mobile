@@ -52,7 +52,7 @@ class DeliveryIntro extends StatelessWidget {
               GestureDetector(
                 onTap: (){
                   Navigator.push(context, MaterialPageRoute(builder: (context){
-                    return AddressSearchBar();
+                    return AddressSearchBar(type: 'create',);
                   }));
                 },
                 child: Container(
