@@ -141,10 +141,8 @@ class AuthProvider with ChangeNotifier{
         final verifyResponse = VerificationModel.fromJson(jsonResponse);
         print('Success: ${verifyResponse.message}');
         await prefs.setString('accessToken', verifyResponse.accessToken!);
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => DeliveryIntro()),
-              (route) => false,
+        globalNavigatorKey.currentState?.pushReplacement(
+          MaterialPageRoute(builder: (_) => DeliveryIntro()),
         );
         notifyListeners();
         return verifyResponse;
@@ -196,10 +194,8 @@ class AuthProvider with ChangeNotifier{
         final verifyResponse = VerificationModel.fromJson(jsonResponse);
         print('Success: ${verifyResponse.message}');
         await prefs.setString('accessToken', verifyResponse.accessToken!);
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => MainHome()),
-              (route) => false,
+        globalNavigatorKey.currentState?.pushReplacement(
+          MaterialPageRoute(builder: (_) => MainHome()),
         );
         notifyListeners();
         return verifyResponse;

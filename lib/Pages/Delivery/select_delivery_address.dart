@@ -248,6 +248,7 @@ class _AddressSearchBarState extends State<AddressSearchBar> {
       setState(() {
         _typeAheadController.text = address.currentAddress!.data!.address!;
       });
+
       if(widget.type == 'create'){
         await address.getLocationManually(
             address.currentAddress!.data!.address!,

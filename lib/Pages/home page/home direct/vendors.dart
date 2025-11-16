@@ -1,110 +1,186 @@
 import 'package:chop_chop_africa/Pages/home%20page/home%20direct/vendor_detail.dart';
+import 'package:chop_chop_africa/backend/address_provider.dart';
+import 'package:chop_chop_africa/backend/store_provider.dart';
 import 'package:chop_chop_africa/utility/sizes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:provider/provider.dart';
 
 import '../../../utility/iacolors.dart';
 import '../../../utility/uiutils.dart';
 
 class Vendors extends StatefulWidget {
-  const Vendors({super.key});
+  final String type;
+  const Vendors({super.key, required this.type});
 
   @override
   State<Vendors> createState() => _VendorsState();
 }
 
 class _VendorsState extends State<Vendors> {
-  List<String> _carouselImages = [
-    'https://images.unsplash.com/photo-1682778418768-16081e4470a1?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8cmVzdGF1cmFudCUyMGJhY2tncm91bmR8ZW58MHx8MHx8fDA%3D&fm=jpg&q=60&w=3000',
-    'https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg?cs=srgb&dl=pexels-pixabay-262978.jpg&fm=jpg'
-  ];
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+
+    final address = Provider.of<AddressProvider>(context, listen: false);
+    final addressList = address.addressList;
+
+    final defaultAddress = addressList.firstWhere(
+          (item) => item.defaut == true,
+      orElse: () => addressList.first,
+    );
+    final storeProvider = Provider.of<StoreProvider>(context, listen: false);
+    storeProvider.clearAllDetail();
+    // 1️⃣ First fetch stores
+    storeProvider.fetchStores(
+      widget.type,
+      defaultAddress.latitude.toString(),
+      defaultAddress.longitude!.toString(),
+    );
+
+    // 2️⃣ Add scroll listener AFTER first UI frame renders
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollController.addListener(() {
+        final stores = Provider.of<StoreProvider>(context, listen: false);
+
+        // Trigger load-more when close to bottom
+        if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200) {
+
+          if (!stores.isLoadingMoreStores && stores.hasNextStorePage) {
+            stores.fetchStores(
+              widget.type,
+              defaultAddress.latitude.toString(),
+              defaultAddress.longitude!.toString(),
+              loadMore: true,
+            );
+          }
+        }
+      });
+    });
+  }
+
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        centerTitle: true,
-        title: Text('Vendors',
-          style: TextStyle(
-              fontSize: 16
+    return Consumer<StoreProvider>(
+      builder: (context,store,child) {
+        if (store.allStoresList.isEmpty) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        return Scaffold(
+          appBar: AppBar(
+            centerTitle: true,
+            title: Text('Vendors',
+              style: TextStyle(
+                  fontSize: 16
+              ),
+            ),
+            leading: UiUtils.backButton(context),
+            actions: [
+              IconButton(
+                  onPressed: (){},
+                  icon: SvgPicture.asset('assets/svg/search-normal.svg'),
+              ),
+              1.gap,
+            ],
+            bottom: PreferredSize(
+              preferredSize: Size.fromHeight(7),
+              child: Divider(
+                color: IAColors.appBarLightGrey,
+              ),
+            ),
           ),
-        ),
-        leading: UiUtils.backButton(context),
-        actions: [
-          IconButton(
-              onPressed: (){},
-              icon: SvgPicture.asset('assets/svg/search-normal.svg'),
-          ),
-          1.gap,
-        ],
-        bottom: PreferredSize(
-          preferredSize: Size.fromHeight(7),
-          child: Divider(
-            color: IAColors.appBarLightGrey,
-          ),
-        ),
-      ),
-      body: Padding(
-        padding:  EdgeInsets.symmetric(horizontal: 20.0),
-        child: ListView.builder(
-          itemCount: _carouselImages.length,
-            itemBuilder: (context,index){
-            return Column(
-              children: [
-                GestureDetector(
-                  onTap: (){
-                    Navigator.push(context, MaterialPageRoute(builder: (context){
-                      return VendorDetail();
-                    }));
-                  },
-                  child: Container(
-                    height: 25.pH,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      image: DecorationImage(
-                          image: NetworkImage(_carouselImages[index]),
-                        fit: BoxFit.cover
-                      )
-                    ),
-                  ),
-                ),
-                1.gap,
-                UiUtils.subTitles('Chicken Republic', 17),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          body: Padding(
+            padding:  EdgeInsets.symmetric(horizontal: 20.0),
+            child: ListView.builder(
+                controller: _scrollController,
+              itemCount:store.allStoresList.length +
+                  (store.isLoadingMoreStores ? 1 : 0),
+                itemBuilder: (context,index){
+                  // LOADING MORE indicator at bottom
+                  if (index == store.allStoresList.length) {
+                    return const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+                  final item = store.allStoresList[index];
+                return Column(
                   children: [
-                    Row(
-                      children: [
-                        SvgPicture.asset('assets/svg/bicycle 1.svg'),
-                        0.5.gap,
-                        Text('5-10 Mins',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w300
+                    GestureDetector(
+                      onTap: (){
+                        Navigator.push(context, MaterialPageRoute(builder: (context){
+                          return VendorDetail();
+                        }));
+                      },
+                      child: Container(
+                        height: 25.pH,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          image: DecorationImage(
+                              image: NetworkImage(item.logo!),
+                            fit: BoxFit.cover
+                          )
                         ),
-                        )
+                      ),
+                    ),
+                    1.gap,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        SizedBox(
+
+                          width: 80.pW,
+                          child: Text(item.name!,
+                            style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w700
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Icon(Icons.star_border,color: Color(0xffF7B100), size: 6.5.pW,),
-                        0.8.gap,
-                        Text('3.7(20)s',
-                          style: TextStyle(
+                        Row(
+                          children: [
+                            SvgPicture.asset('assets/svg/bicycle 1.svg'),
+                            0.5.gap,
+                            Text(item.deliveryTime!,
+                            style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w300
-                          ),
+                            ),
+                            )
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            Icon(Icons.star_border,color: Color(0xffF7B100), size: 6.5.pW,),
+                            0.8.gap,
+                            Text(item.status.toString(),
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w300
+                              ),
+                            )
+                          ],
                         )
                       ],
-                    )
+                    ),
+                    3.gap,
                   ],
-                ),
-                3.gap,
-              ],
-            );
-            }
-        ),
-      ),
+                );
+                }
+            ),
+          ),
+        );
+      }
     );
   }
 
