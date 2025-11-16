@@ -1,13 +1,16 @@
 import 'dart:io';
 
-import 'package:chop_chop_africa/Pages/auth_page/verification.dart';
 import 'package:chop_chop_africa/utility/sizes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:phone_text_field/phone_text_field.dart';
+import 'package:provider/provider.dart';
 
+import '../../backend/auth_provider.dart';
 import '../../utility/iacolors.dart';
 import '../../utility/uiutils.dart';
+import 'package:loading_indicator/loading_indicator.dart';
+
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -18,8 +21,10 @@ class Login extends StatefulWidget {
 
 class _LoginState extends State<Login> {
   final _phoneController = TextEditingController();
+  bool _isLoading = false;
   @override
   Widget build(BuildContext context) {
+    final authData = Provider.of<AuthProvider>(context,listen: false);
     return Theme(
       data: Theme.of(context).copyWith(
         dividerTheme: const DividerThemeData(
@@ -87,7 +92,6 @@ class _LoginState extends State<Login> {
                 child: SizedBox(
                   height: 9.5.pH,
                   child: PhoneTextField(
-                    controller: _phoneController,
                     invalidNumberMessage: 'Please enter a valid phone number',
                     autovalidateMode: AutovalidateMode.onUnfocus,
                     initialCountryCode: 'NG',
@@ -118,6 +122,9 @@ class _LoginState extends State<Login> {
                     countryViewOptions: CountryViewOptions.countryCodeWithFlag,
                     onChanged: (phoneNumber) {
                       debugPrint('Phone: ${phoneNumber.completeNumber}');
+                      setState(() {
+                        _phoneController.text = phoneNumber.completeNumber;
+                      });
                     },
                   ),
                 ),
@@ -205,22 +212,38 @@ class _LoginState extends State<Login> {
               height: 6.5.pH,
               width: 100.pW,
               child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context){
-                    return VerificationPage(phoneNo: 'phoneNo');
-                  }));
+                onPressed: () async{
+                  await login(authData);
                 },
-                child: Text('Continue',
-                  style: TextStyle(
-                      color: Colors.white
-                  ),
-                ),
+                child:  _isLoading?
+                SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: LoadingIndicator(
+                        indicatorType: Indicator.ballPulse,
+                        colors: const [Colors.white],
+                        strokeWidth: 2,
+                        backgroundColor: Colors.transparent,
+                        pathBackgroundColor: Colors.black)):
+                Text('Continue',
               ),
             ),
           ),
+          )
         ],
       ),
     );
+  }
+  login(AuthProvider authData)async{
+   if(_phoneController.text.isNotEmpty){
+     setState(() {
+       _isLoading= true;
+     });
+     await authData.login(_phoneController.text, context);
+     setState(() {
+       _isLoading= false;
+     });
+   }
   }
   Widget title(String text){
     return Padding(

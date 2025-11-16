@@ -6,4 +6,7 @@ part 'env.g.dart';
 abstract class Env {
   @EnviedField()
   static const String GOOGLE_API_KEY = _Env.GOOGLE_API_KEY;
+
+  @EnviedField()
+  static const String BACKEND_URL = _Env.BACKEND_URL;
 }

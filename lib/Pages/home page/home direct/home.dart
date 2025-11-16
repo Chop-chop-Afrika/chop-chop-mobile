@@ -1,12 +1,17 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:chop_chop_africa/Pages/home%20page/home%20direct/easy_package_delivery.dart';
 import 'package:chop_chop_africa/Pages/home%20page/home%20direct/vendors.dart';
+import 'package:chop_chop_africa/backend/address_provider.dart';
+import 'package:chop_chop_africa/backend/profile_provider.dart';
 import 'package:chop_chop_africa/utility/iacolors.dart';
 import 'package:chop_chop_africa/utility/sizes.dart';
 import 'package:chop_chop_africa/utility/uiutils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:provider/provider.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
+
+import '../../Delivery/select_delivery_address.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -24,11 +29,19 @@ List<String> _carouselImages = [
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final profile = Provider.of<ProfileProvider>(context,listen: false);
+    final profileInfo = profile.getAllProfileInfo;
+    String cutUnwantedPart(String name) {
+      if (name.length > 25) {
+        return name.trim().replaceRange(25, null, '...');
+      }
+      return name;
+    }
     return Scaffold(
       appBar: AppBar(
         centerTitle: false,
         automaticallyImplyLeading: false,
-        title: Text('Hello Name 👋',
+        title: Text('Hello ${profileInfo?.data?.firstName} 👋',
           style: TextStyle(
               color: Colors.black,
               fontWeight: FontWeight.w700,
@@ -36,16 +49,27 @@ List<String> _carouselImages = [
           ),
         ),
         actions: [
-          Text('address...',
-            style: TextStyle(
-                color: Colors.black,
-                fontSize: 14
-            ),
+          Consumer<AddressProvider>(
+            builder: (context,address,child) {
+              final addressList = address.addressList;
+              final defaultAddress = addressList.firstWhere(
+                    (item) => item.defaut == true,
+                orElse: () => addressList.first,
+              );
+              return Text( addressList.isEmpty?
+                  'Loading...':
+                cutUnwantedPart(defaultAddress.address??''),
+                style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 14
+                ),
+              );
+            }
           ),
           TextButton(
               onPressed: (){
                 Navigator.push(context, MaterialPageRoute(builder: (context){
-                  return EasyPackageDelivery();
+                  return AddressSearchBar(type: 'update',);
                 }));
               },
               child: Text('Change',
@@ -110,7 +134,13 @@ List<String> _carouselImages = [
                     },
                       child: _topContainers('Quick Options.png', Color(0xffFFE3D9), 'Vendors')
                   ),
-                  _topContainers('Quick Options (2).png', Color(0xffE9FFF5), 'Send Packages')
+                  GestureDetector(
+                    onTap: (){
+                      Navigator.push(context, MaterialPageRoute(builder: (context){
+                        return EasyPackageDelivery();
+                      }));
+                    },
+                      child: _topContainers('Quick Options (2).png', Color(0xffE9FFF5), 'Send Packages'))
                 ],
               ),
               2.gap,

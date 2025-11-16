@@ -12,4 +12,7 @@ part of 'env.dart';
 final class _Env {
   static const String GOOGLE_API_KEY =
       'AIzaSyAA7l7Xj_oJ8yZAA9pggN3Ovm4pnuotmmM';
+
+  static const String BACKEND_URL =
+      'https://chop-africa-backend-production.up.railway.app';
 }

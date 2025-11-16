@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:chop_chop_africa/Pages/Delivery/delivery_intro.dart';
+import 'package:chop_chop_africa/backend/auth_provider.dart';
 import 'package:chop_chop_africa/utility/sizes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -14,7 +15,8 @@ import 'package:loading_indicator/loading_indicator.dart';
 
 class VerificationPage extends StatefulWidget {
   final String phoneNo;
-  const VerificationPage({super.key, required this.phoneNo});
+  final String mode;
+  const VerificationPage({super.key, required this.phoneNo, required this.mode});
 
   @override
   State<VerificationPage> createState() => _VerificationPageState();
@@ -24,7 +26,7 @@ class _VerificationPageState extends State<VerificationPage> {
   int _start = 300;
   Timer? _timer;
   String? _otp;
-  bool isLoading = false;
+  bool _isLoading = false;
   TextEditingController _pinController = TextEditingController();
   void _startTimer() {
     const oneSec = Duration(seconds: 1);
@@ -132,7 +134,7 @@ class _VerificationPageState extends State<VerificationPage> {
             PinCodeTextField(
               appContext: context,
               controller: _pinController,
-              length: 4,
+              length: 6,
               textStyle: TextStyle(fontSize: 15),
               textCapitalization: TextCapitalization.characters,
               enableActiveFill: true,
@@ -171,8 +173,8 @@ class _VerificationPageState extends State<VerificationPage> {
               pinTheme: PinTheme(
                 shape: PinCodeFieldShape.box,
                 borderRadius: BorderRadius.circular(10),
-                fieldHeight: 18.pW,
-                fieldWidth: 18.pW,
+                fieldHeight: 13.pW,
+                fieldWidth: 13.pW,
                 borderWidth: 1,
                 activeColor: IAColors.veryLightGrey,
                 inactiveColor: IAColors.veryLightGrey,
@@ -215,33 +217,23 @@ class _VerificationPageState extends State<VerificationPage> {
               height: 6.5.pH,
               width: 100.pW,
               child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context){
-                    return DeliveryIntro();
-                  }));
-                  // if (isLoading) return;
-                  //
-                  // verifyOtp(_otp!, widget.phoneNo);
+                onPressed: ()async{
+                 await verifyOtp(_otp!, widget.phoneNo);
                 },
-                child: Consumer(
-                  builder: (con, auth, child) {
-                    if (
-                    //auth.isLoading
-                    1==2
-                    ) {
-                      isLoading = true;
-                      return SizedBox(
-                          child: LoadingIndicator(
-                              indicatorType: Indicator.ballPulse,
-                              colors: const [Colors.white],
-                              strokeWidth: 2,
-                              backgroundColor: Colors.transparent,
-                              pathBackgroundColor: Colors.black));
-                    }
-                    isLoading = false;
-                    return Text('Verify');
-                  },
+                child: _isLoading?
+                SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: LoadingIndicator(
+                        indicatorType: Indicator.ballPulse,
+                        colors: const [Colors.white],
+                        strokeWidth: 2,
+                        backgroundColor: Colors.transparent,
+                        pathBackgroundColor: Colors.black)):
+                Text('Continue',
+
                 ),
+
               ),
             ),
             // Text(widget.email,style: TextStyle(color: Colors.black),),
@@ -252,11 +244,21 @@ class _VerificationPageState extends State<VerificationPage> {
       ),
     );
   }
-  Future<void> verifyOtp(String otp, String email) async {
+  Future<void> verifyOtp(String otp, String phoneNo) async {
     if(_otp != null){
+      setState(() {
+        _isLoading = true;
+      });
       UiUtils.hideKeyboard(context);
-      final appServices = Provider.of(context, listen: false);
-      appServices.verifyOtp(otp, email, context);
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+     if(widget.mode == 'signup'){
+       await authProvider.verification(phoneNo, otp, context);
+     }else{
+       await authProvider.loginVerification(phoneNo, otp, context);
+     }
+     setState(() {
+       _isLoading = false;
+     });
     }
   }
 }
