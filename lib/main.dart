@@ -67,7 +67,7 @@ class MyApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           title: 'Flutter Demo',
           theme: IATheme.getLightTheme(),
-          home: prefs.getString('accessToken')!.isEmpty?
+          home: prefs.getString('accessToken')== null?
           GetStarted():MainHome(),
           builder: EasyLoading.init(),
         );

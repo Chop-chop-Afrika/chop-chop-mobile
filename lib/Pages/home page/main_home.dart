@@ -4,6 +4,7 @@ import 'package:chop_chop_africa/Pages/home%20page/profile%20direct/profile.dart
 import 'package:chop_chop_africa/Pages/home%20page/support_direct/support.dart';
 import 'package:chop_chop_africa/backend/address_provider.dart';
 import 'package:chop_chop_africa/backend/profile_provider.dart';
+import 'package:chop_chop_africa/backend/store_provider.dart';
 import 'package:chop_chop_africa/utility/iacolors.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
@@ -20,6 +21,7 @@ class MainHome extends StatefulWidget {
 
 class _MainHomeState extends State<MainHome> {
   int _currentIndex = 0;
+  String placeHolderLogo = 'https://freesvg.org/img/chef-restaurant-logo-publicdomainvectors.png';
   final List<Widget> _body = [
     Home(),
     Orders(),
@@ -81,11 +83,18 @@ class _MainHomeState extends State<MainHome> {
             ),
             BottomNavigationBarItem(
               label: "Profile",
-              icon: SvgPicture.asset('assets/svg/Ellipse 8.svg'),
-              activeIcon: SvgPicture.asset('assets/svg/Ellipse 8.svg',colorFilter: ColorFilter.mode(
-                IAColors.primary,
-                BlendMode.srcIn,
-              )),
+              icon: Consumer<ProfileProvider>(
+                builder: (context,profile,child) {
+                  return CircleAvatar(
+                    radius: 12,
+                    backgroundImage: NetworkImage(profile.getAllProfileInfo?.data?.avatar??placeHolderLogo),
+                  );
+                }
+              )
+              // activeIcon: SvgPicture.asset('assets/svg/Ellipse 8.svg',colorFilter: ColorFilter.mode(
+              //   IAColors.primary,
+              //   BlendMode.srcIn,
+              // )),
             ),
           ]
       ),
@@ -101,8 +110,15 @@ class _MainHomeState extends State<MainHome> {
       }
     });
   }
-  _getAllNecessaryBackendData(){
-    Provider.of<AddressProvider>(context,listen: false).getAllAddresses();
+  _getAllNecessaryBackendData()async{
     Provider.of<ProfileProvider>(context,listen: false).getProfile();
+    await Provider.of<AddressProvider>(context,listen: false).getAllAddresses();
+    if(mounted){
+      final getLatLng = Provider.of<AddressProvider>(context,listen: false).defaultAddress;
+      Provider.of<StoreProvider>(context,listen: false).fetchTopStores(getLatLng!.latitude.toString(), getLatLng.longitude.toString());
+      Provider.of<StoreProvider>(context,listen: false).fetchTopVendors('RESTAURANT',getLatLng.latitude.toString(), getLatLng.longitude.toString());
+      Provider.of<StoreProvider>(context,listen: false).fetchAllProductCategories();
+      Provider.of<StoreProvider>(context,listen: false).fetchAllCartItems();
+    }
   }
 }

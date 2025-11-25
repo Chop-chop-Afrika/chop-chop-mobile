@@ -41,14 +41,14 @@ class _LoginState extends State<Login> {
             ),
           ),
           actions: [
-            TextButton(
-                onPressed: (){},
-                child: Text('Continue as guest',
-                  style: TextStyle(
-                      color: IAColors.primary
-                  ),
-                )
-            )
+            // TextButton(
+            //     onPressed: (){},
+            //     child: Text('Continue as guest',
+            //       style: TextStyle(
+            //           color: IAColors.primary
+            //       ),
+            //     )
+            // )
           ],
         ),
         body: Padding(

@@ -5,13 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:provider/provider.dart';
 import '../../utility/iacolors.dart';
 
 class AddressSearchBar extends StatefulWidget {
 final String type;
-  AddressSearchBar({super.key, required this.type});
+final bool defaultAddress;
+  AddressSearchBar({super.key, required this.type, required this.defaultAddress});
 
   @override
   State<AddressSearchBar> createState() => _AddressSearchBarState();
@@ -128,7 +128,7 @@ class _AddressSearchBarState extends State<AddressSearchBar> {
                         print('object');
                         _typeAheadController.text = predictions.description!;
                         if(widget.type == "create"){
-                          await address.getLocationFromPlaceId(predictions.placeId, context);
+                          await address.getLocationFromPlaceId(predictions.placeId, widget.defaultAddress, context);
                         }else{
                           final defaultAddress = address.addressList.firstWhere(
                                 (item) => item.defaut == true,
@@ -254,6 +254,7 @@ class _AddressSearchBarState extends State<AddressSearchBar> {
             address.currentAddress!.data!.address!,
             address.currentAddress!.data!.longitude!,
             address.currentAddress!.data!.latitude!,
+            widget.defaultAddress,
             context);
       }else{
         final defaultAddress = address.addressList.firstWhere(

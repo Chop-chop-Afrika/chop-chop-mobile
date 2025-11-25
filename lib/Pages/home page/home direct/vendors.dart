@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
 
+import '../../../backend/profile_provider.dart';
 import '../../../utility/iacolors.dart';
 import '../../../utility/uiutils.dart';
 
@@ -24,31 +25,34 @@ class _VendorsState extends State<Vendors> {
   void initState() {
     super.initState();
 
-    final address = Provider.of<AddressProvider>(context, listen: false);
-    final addressList = address.addressList;
-
-    final defaultAddress = addressList.firstWhere(
-          (item) => item.defaut == true,
-      orElse: () => addressList.first,
-    );
-    final storeProvider = Provider.of<StoreProvider>(context, listen: false);
-    storeProvider.clearAllDetail();
-    // 1️⃣ First fetch stores
-    storeProvider.fetchStores(
-      widget.type,
-      defaultAddress.latitude.toString(),
-      defaultAddress.longitude!.toString(),
-    );
-
-    // 2️⃣ Add scroll listener AFTER first UI frame renders
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<ProfileProvider>(context,listen: false).getProfile();
+      final address = Provider.of<AddressProvider>(context, listen: false);
+      final addressList = address.addressList;
+
+      final defaultAddress = addressList.firstWhere(
+            (item) => item.defaut == true,
+        orElse: () => addressList.first,
+      );
+
+      final storeProvider = Provider.of<StoreProvider>(context, listen: false);
+
+      // Clear AFTER the first frame
+      storeProvider.clearAllDetail();
+
+      // Fetch data AFTER the first frame
+      storeProvider.fetchStores(
+        widget.type,
+        defaultAddress.latitude.toString(),
+        defaultAddress.longitude!.toString(),
+      );
+
+      // Attach scroll listener AFTER UI builds
       _scrollController.addListener(() {
         final stores = Provider.of<StoreProvider>(context, listen: false);
 
-        // Trigger load-more when close to bottom
         if (_scrollController.position.pixels >=
             _scrollController.position.maxScrollExtent - 200) {
-
           if (!stores.isLoadingMoreStores && stores.hasNextStorePage) {
             stores.fetchStores(
               widget.type,
@@ -61,6 +65,7 @@ class _VendorsState extends State<Vendors> {
       });
     });
   }
+
 
 
   @override
@@ -113,8 +118,13 @@ class _VendorsState extends State<Vendors> {
                     GestureDetector(
                       onTap: (){
                         Navigator.push(context, MaterialPageRoute(builder: (context){
-                          return VendorDetail();
+                          return VendorDetail(
+                            storeId: item.id!,
+                            storeName: item.name!,
+                            deliveryTime: item.deliveryTime!,
+                            businessTime: '${item.openTime} - ${item.closeTime}',);
                         }));
+
                       },
                       child: Container(
                         height: 25.pH,

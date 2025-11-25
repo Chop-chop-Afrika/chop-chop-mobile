@@ -1,3 +1,5 @@
+import 'package:chop_chop_africa/Pages/home%20page/home%20direct/active_package_history.dart';
+import 'package:chop_chop_africa/Pages/home%20page/home%20direct/recieve_package.dart';
 import 'package:chop_chop_africa/Pages/home%20page/home%20direct/send_package.dart';
 import 'package:chop_chop_africa/utility/sizes.dart';
 import 'package:chop_chop_africa/utility/uiutils.dart';
@@ -44,9 +46,21 @@ class EasyPackageDelivery extends StatelessWidget {
                 },
                   child: _topContainers('Box.png', Color(0xffFDF2DF), 'Send Package')),
               2.gap,
-              _topContainers('Group.png', Color(0xffFFE3D9), 'Receive package'),
+              GestureDetector(
+                  onTap: (){
+                    Navigator.push(context, MaterialPageRoute(builder: (context){
+                      return ReceivePackage();
+                    }));
+                  },
+                  child: _topContainers('Group.png', Color(0xffFFE3D9), 'Receive package'))
+              ,
               2.gap,
-              _topContainers('Group (1).png', Color(0xffE9FFF5), 'History')
+              GestureDetector(
+                  onTap: (){
+                    Navigator.push(context, MaterialPageRoute(builder: (context){
+                      return ActivePackageHistory();
+                    }));
+                  },child: _topContainers('Group (1).png', Color(0xffE9FFF5), 'History'))
             ],
           ),
         ),
