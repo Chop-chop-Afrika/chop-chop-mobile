@@ -1,5 +1,6 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:chop_chop_africa/Pages/home%20page/home%20direct/easy_package_delivery.dart';
+import 'package:chop_chop_africa/Pages/home%20page/home%20direct/search_page.dart';
 import 'package:chop_chop_africa/Pages/home%20page/home%20direct/vendor_detail.dart';
 import 'package:chop_chop_africa/Pages/home%20page/home%20direct/vendors.dart';
 import 'package:chop_chop_africa/backend/address_provider.dart';
@@ -98,6 +99,12 @@ List<String> _carouselImages = [
                   SizedBox(
                     height:11.pH,
                     child: TextFormField(
+                      onTap: (){
+                        Navigator.push(context, MaterialPageRoute(builder: (context){
+                          return SearchPage();
+                        }));
+                      },
+                      readOnly: true,
                       validator: (v){
                         if(v!.isEmpty){
                           return 'Field Must Not be empty';

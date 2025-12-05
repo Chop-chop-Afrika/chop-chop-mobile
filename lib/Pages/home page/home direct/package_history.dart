@@ -1,18 +1,19 @@
+import 'package:chop_chop_africa/Pages/home%20page/home%20direct/active_package_history.dart';
 import 'package:chop_chop_africa/utility/sizes.dart';
 import 'package:flutter/material.dart';
 
 import '../../../utility/iacolors.dart';
 import '../../../utility/uiutils.dart';
 
-class TransactionHistoryTabPage extends StatefulWidget {
+class PackageHistoryTab extends StatefulWidget {
 
-  const TransactionHistoryTabPage({super.key});
+  const PackageHistoryTab({super.key});
 
   @override
-  State<TransactionHistoryTabPage> createState() => _TransactionHistoryTabPageState();
+  State<PackageHistoryTab> createState() => _PackageHistoryTabState();
 }
 
-class _TransactionHistoryTabPageState extends State<TransactionHistoryTabPage> {
+class _PackageHistoryTabState extends State<PackageHistoryTab> {
 
 
 
@@ -29,7 +30,7 @@ class _TransactionHistoryTabPageState extends State<TransactionHistoryTabPage> {
           surfaceTintColor: Colors.transparent,
           foregroundColor: Colors.transparent,
           automaticallyImplyLeading: true,
-          title: Text('Transaction History',
+          title: Text('History',
             style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600
@@ -52,6 +53,7 @@ class _TransactionHistoryTabPageState extends State<TransactionHistoryTabPage> {
                 TabBar(
                   labelColor: Colors.black,
                   labelStyle: Theme.of(context).textTheme.bodySmall,
+                  dividerColor: IAColors.veryLightGrey,
                   indicatorWeight: 0.01,
                   indicator: BoxDecoration(
                     border: Border(
@@ -98,7 +100,8 @@ class _TransactionHistoryTabPageState extends State<TransactionHistoryTabPage> {
           padding: const EdgeInsets.symmetric(horizontal: 20.0),
           child: TabBarView(
             children: [
-
+              ActivePackageHistory(status: 'active',),
+              ActivePackageHistory(status: 'completed',)
             ],
           ),
         ),

@@ -1,4 +1,5 @@
 import 'package:chop_chop_africa/Pages/home%20page/home%20direct/active_package_history.dart';
+import 'package:chop_chop_africa/Pages/home%20page/home%20direct/package_history.dart';
 import 'package:chop_chop_africa/Pages/home%20page/home%20direct/recieve_package.dart';
 import 'package:chop_chop_africa/Pages/home%20page/home%20direct/send_package.dart';
 import 'package:chop_chop_africa/utility/sizes.dart';
@@ -58,7 +59,7 @@ class EasyPackageDelivery extends StatelessWidget {
               GestureDetector(
                   onTap: (){
                     Navigator.push(context, MaterialPageRoute(builder: (context){
-                      return ActivePackageHistory();
+                      return PackageHistoryTab();
                     }));
                   },child: _topContainers('Group (1).png', Color(0xffE9FFF5), 'History'))
             ],

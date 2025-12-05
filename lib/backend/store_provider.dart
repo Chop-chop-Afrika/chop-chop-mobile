@@ -1,8 +1,9 @@
 import 'dart:convert';
-
-import 'package:chop_chop_africa/backend/models/add_to_cart_model.dart';
+import 'package:chop_chop_africa/backend/models/get_active_package_model.dart';
 import 'package:chop_chop_africa/backend/models/get_cart_model.dart';
 import 'package:chop_chop_africa/backend/models/productCategoryModel.dart';
+import 'package:chop_chop_africa/backend/models/search_product_model.dart';
+import 'package:chop_chop_africa/backend/models/search_store_model.dart';
 import 'package:chop_chop_africa/backend/models/send_and_receive_package.dart';
 import 'package:chop_chop_africa/backend/models/store_detail_model.dart';
 import 'package:chop_chop_africa/backend/models/success_model.dart';
@@ -13,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../Pages/home page/main_home.dart';
 import '../env/env.dart';
 import '../main.dart';
 import '../utility/uiutils.dart';
@@ -34,6 +36,9 @@ class StoreProvider with ChangeNotifier{
   bool hasNextStoreDetailPage = true;
   ProductCategoryModel? getAllProductCategories;
   GetCartModel? getCartItems;
+  List<ActivePackageList> activePackage = [];
+  List<StoreModelData> searchStores = [];
+  List<SearchProductData> searchProducts = [];
 
 
   Future<void> fetchStores(String type,String latitude,String longitude, {bool loadMore = false}) async {
@@ -435,7 +440,89 @@ class StoreProvider with ChangeNotifier{
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);
         final details = SendAndReceivePackageModel.fromJson(jsonResponse);
+        globalNavigatorKey.currentState?.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => MainHome()),
+              (Route<dynamic> route) => false,
+        );
         showAlert('Success!', details.message!, 'close');
+        notifyListeners();
+      } else if (response.statusCode == 400) {
+        jsonResponse = jsonDecode(response.body);
+        print('Error: $jsonResponse');
+        notifyListeners();
+      } else {
+        jsonResponse = jsonDecode(response.body);
+        throw jsonResponse['message'];
+      }
+    } catch (error) {
+      String errorMessage = error.toString();
+      print('Caught error: $errorMessage');
+      notifyListeners();
+    }
+  }
+
+  Future<void> searchProductsAndStores(String type, String search) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    dynamic jsonResponse;
+    try {
+      String url = "${Env.BACKEND_URL}/user/search?query=$search&type=$type";
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': "Bearer ${prefs.getString('accessToken')}",
+        },
+      );
+
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        jsonResponse = jsonDecode(response.body);
+        if(type == 'products'){
+          final details = SearchProductModel.fromJson(jsonResponse);
+          searchProducts = details.data!;
+        }else{
+          final details = SearchStoreModel.fromJson(jsonResponse);
+          searchStores = details.data!;
+        }
+
+        notifyListeners();
+      } else if (response.statusCode == 400) {
+        jsonResponse = jsonDecode(response.body);
+        print('Error: $jsonResponse');
+        notifyListeners();
+      } else {
+        jsonResponse = jsonDecode(response.body);
+        throw jsonResponse['message'];
+      }
+    } catch (error) {
+      String errorMessage = error.toString();
+      print('Caught error: $errorMessage');
+      notifyListeners();
+    }
+  }
+
+  Future<void> getPackageStatus(String status) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    dynamic jsonResponse;
+    try {
+      String url = "${Env.BACKEND_URL}/user/packages/$status";
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': "Bearer ${prefs.getString('accessToken')}",
+        },
+      );
+
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        jsonResponse = jsonDecode(response.body);
+        final details = GetActivePackageModel.fromJson(jsonResponse);
+        activePackage = details.data!;
         notifyListeners();
       } else if (response.statusCode == 400) {
         jsonResponse = jsonDecode(response.body);
