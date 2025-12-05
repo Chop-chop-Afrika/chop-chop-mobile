@@ -7,7 +7,8 @@ import 'package:flutter/material.dart';
 import '../../../utility/iacolors.dart';
 
 class Orders extends StatefulWidget {
-  const Orders({super.key});
+  final int index;
+  const Orders({super.key, this.index = 0});
 
   @override
   State<Orders> createState() => _OrdersState();
@@ -17,6 +18,7 @@ class _OrdersState extends State<Orders> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
+      initialIndex: widget.index,
       length: 3,
       child: Scaffold(
         appBar: AppBar(
@@ -52,7 +54,7 @@ class _OrdersState extends State<Orders> {
                       padding: const EdgeInsets.symmetric(vertical: 8.0),
                       child: Text('My Cart',
                       style: TextStyle(
-                        fontSize: 17
+                        fontSize: 15
                       ),
                       ),
                     ),
@@ -60,7 +62,7 @@ class _OrdersState extends State<Orders> {
                       padding: const EdgeInsets.symmetric(vertical: 8.0),
                       child: Text('Ongoing',
                         style: TextStyle(
-                            fontSize: 17
+                            fontSize: 15
                         ),
                       ),
                     ),
@@ -68,7 +70,7 @@ class _OrdersState extends State<Orders> {
                       padding: const EdgeInsets.symmetric(vertical: 8.0),
                       child: Text('Completed',
                         style: TextStyle(
-                            fontSize: 17
+                            fontSize: 15
                         ),
                       ),
                     ),

@@ -22,7 +22,9 @@ class AddressProvider with ChangeNotifier{
   List<SearchedAddress>? searchedAddress;
   CurrentAddressModel? currentAddress;
   List<AddressList> addressList = [];
+  AddressList? defaultAddress;
   PlaceDetailsByIdModel? getPlaceDetails;
+
 
   Future<AddressSearchModel?> searchForAddress(String search) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -57,8 +59,14 @@ class AddressProvider with ChangeNotifier{
       }
     } catch (error) {
       String errorMessage = error.toString();
-      print('Caught error: $errorMessage');
-      notifyListeners();
+      print('The error is: $errorMessage');
+      if (errorMessage.contains('Failed host lookup')) {
+        showAlert('Error', "Connection is down currently", 'close');
+      } else if (errorMessage.contains('DOCTYPE HTML') || errorMessage.contains('oken') || errorMessage.contains('Connection reset by peer')) {
+        showAlert('Error', "Something went wrong", 'close');
+      } else {
+        showAlert('Error', errorMessage, 'close');
+      }
       return null;
     }
   }
@@ -102,7 +110,7 @@ class AddressProvider with ChangeNotifier{
     }
   }
 
-  Future<dynamic> getLocationFromPlaceId( String placeId, BuildContext context) async {
+  Future<dynamic> getLocationFromPlaceId( String placeId, bool defaultAddress, BuildContext context) async {
     dynamic jsonResponse;
     SharedPreferences prefs = await SharedPreferences.getInstance();
     notifyListeners();
@@ -118,7 +126,7 @@ class AddressProvider with ChangeNotifier{
         },
         body: jsonEncode({
           "placeId": placeId,
-          "isDefault": true
+          "isDefault": defaultAddress
         }),
       );
       print('done');
@@ -156,7 +164,7 @@ class AddressProvider with ChangeNotifier{
     }
   }
 
-  Future<dynamic> getLocationManually( String address,double longitude,double latitude, BuildContext context) async {
+  Future<dynamic> getLocationManually( String address,double longitude,double latitude, bool defaultAddress, BuildContext context) async {
     dynamic jsonResponse;
     SharedPreferences prefs = await SharedPreferences.getInstance();
     notifyListeners();
@@ -173,7 +181,7 @@ class AddressProvider with ChangeNotifier{
           "address": address,
           "longitude": longitude,
           "latitude": latitude,
-          "isDefault": true
+          "isDefault": defaultAddress
         }),
       );
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -230,6 +238,13 @@ class AddressProvider with ChangeNotifier{
         jsonResponse = jsonDecode(response.body);
         final allAddress = AllAddressesModel.fromJson(jsonResponse);
         addressList = allAddress.data!;
+        final mainAddress = addressList.isEmpty
+            ? null
+            : addressList.firstWhere(
+              (item) => item.defaut == true,
+          orElse: () => addressList.first,
+        );
+        defaultAddress = mainAddress;
         notifyListeners();
         return allAddress;
       } else if (response.statusCode == 400) {
@@ -243,8 +258,14 @@ class AddressProvider with ChangeNotifier{
       }
     } catch (error) {
       String errorMessage = error.toString();
-      print('Caught error: $errorMessage');
-      notifyListeners();
+      print('The error is: $errorMessage');
+      if (errorMessage.contains('Failed host lookup')) {
+        showAlert('Error', "Connection is down currently", 'close');
+      } else if (errorMessage.contains('DOCTYPE HTML') || errorMessage.contains('oken') || errorMessage.contains('Connection reset by peer')) {
+        showAlert('Error', "Something went wrong", 'close');
+      } else {
+        showAlert('Error', errorMessage, 'close');
+      }
       return null;
     }
   }
@@ -342,6 +363,46 @@ class AddressProvider with ChangeNotifier{
       return null;
     }
   }
+
+  Future<void> deleteAddress(String id) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    dynamic jsonResponse;
+    try {
+      String url = "${Env.BACKEND_URL}/user/address/delete/$id";
+      final response = await http.delete(
+        Uri.parse(url),
+        headers: {
+          'accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': "Bearer ${prefs.getString('accessToken')}",
+        },
+      );
+
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        jsonResponse = jsonDecode(response.body);
+        //final details = SuccessModel.fromJson(jsonResponse);
+        getAllAddresses();
+        notifyListeners();
+      } else if (response.statusCode == 400) {
+        jsonResponse = jsonDecode(response.body);
+        print('Error: $jsonResponse');
+        notifyListeners();
+        return null;
+      } else {
+        jsonResponse = jsonDecode(response.body);
+        throw jsonResponse['message'];
+      }
+    } catch (error) {
+      String errorMessage = error.toString();
+      print('Caught error: $errorMessage');
+      notifyListeners();
+      return null;
+    }
+  }
+
+
 
   showAlert(String title,String content,String defaultAction, {Function(bool)? onDismissed = null}) {
     UiUtils.showAlertDialog(

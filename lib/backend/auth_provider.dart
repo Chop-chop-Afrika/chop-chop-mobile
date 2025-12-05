@@ -194,8 +194,9 @@ class AuthProvider with ChangeNotifier{
         final verifyResponse = VerificationModel.fromJson(jsonResponse);
         print('Success: ${verifyResponse.message}');
         await prefs.setString('accessToken', verifyResponse.accessToken!);
-        globalNavigatorKey.currentState?.pushReplacement(
+        globalNavigatorKey.currentState?.pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => MainHome()),
+              (Route<dynamic> route) => false,
         );
         notifyListeners();
         return verifyResponse;

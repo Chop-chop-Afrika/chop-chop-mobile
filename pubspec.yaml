@@ -59,6 +59,13 @@ dependencies:
   shared_preferences: ^2.5.3
   flutter_easyloading: ^3.0.5
   connectivity_plus: ^7.0.0
+  phone_numbers_parser: ^9.0.16
+  image_picker: ^1.2.1
+  image: ^4.5.4
+  path: ^1.9.1
+  path_provider: ^2.1.5
+  flutter_image_compress: ^2.4.0
+
 
 dev_dependencies:
   flutter_test:

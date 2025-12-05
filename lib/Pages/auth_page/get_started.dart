@@ -40,14 +40,14 @@ class _GetStartedState extends State<GetStarted> {
         appBar: AppBar(
           automaticallyImplyLeading: false,
           actions: [
-            TextButton(
-                onPressed: (){},
-                child: Text('Continue as guest',
-                  style: TextStyle(
-                    color: IAColors.primary
-                  ),
-                )
-            )
+            // TextButton(
+            //     onPressed: (){},
+            //     child: Text('Continue as guest',
+            //       style: TextStyle(
+            //         color: IAColors.primary
+            //       ),
+            //     )
+            // )
           ],
         ),
         body: SingleChildScrollView(
