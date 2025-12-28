@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:chop_chop_africa/backend/support_provider.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
@@ -18,7 +19,7 @@ import '../backend/profile_provider.dart';
 final ImagePicker _picker = ImagePicker();
 final ImageCacheManager _cacheManager = ImageCacheManager();
 class ImageServices{
-  Future<String?> pickImages(ImageSource source, BuildContext context) async {
+  Future<String?> pickImages(ImageSource source, String process, BuildContext context) async {
     XFile? file = await _picker.pickImage(source: source);
     try {
       if (file != null) {
@@ -31,7 +32,11 @@ class ImageServices{
           List<int> imageBytes = await resizeImage(imageFile, scaleFactor);
           file = await saveResizedImage(imageBytes);
         }
-        Provider.of<ProfileProvider>(context,listen: false).changeAvatar(File(file.path));
+        if(process == 'changeAvatar'){
+          Provider.of<ProfileProvider>(context,listen: false).changeAvatar(File(file.path));
+        }else{
+          Provider.of<SupportProvider>(context, listen: false).getSupportImage(file.path);
+        }
         EasyLoading.dismiss();
         return null;
       } else {

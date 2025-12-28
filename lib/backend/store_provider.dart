@@ -6,6 +6,7 @@ import 'package:chop_chop_africa/backend/models/search_product_model.dart';
 import 'package:chop_chop_africa/backend/models/search_store_model.dart';
 import 'package:chop_chop_africa/backend/models/send_and_receive_package.dart';
 import 'package:chop_chop_africa/backend/models/store_detail_model.dart';
+import 'package:chop_chop_africa/backend/models/store_information_model.dart';
 import 'package:chop_chop_africa/backend/models/success_model.dart';
 import 'package:chop_chop_africa/backend/models/top_stores_model.dart';
 import 'package:chop_chop_africa/backend/models/user_stores_model.dart';
@@ -39,6 +40,7 @@ class StoreProvider with ChangeNotifier{
   List<ActivePackageList> activePackage = [];
   List<StoreModelData> searchStores = [];
   List<SearchProductData> searchProducts = [];
+  StoreInformationModel? storeInformation;
 
 
   Future<void> fetchStores(String type,String latitude,String longitude, {bool loadMore = false}) async {
@@ -313,6 +315,80 @@ class StoreProvider with ChangeNotifier{
       return null;
     }
   }
+  Future<void> clearCart(String orderId) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    dynamic jsonResponse;
+    try {
+      String url = "${Env.BACKEND_URL}/user/cart/remove/$orderId";
+      final response = await http.delete(
+        Uri.parse(url),
+        headers: {
+          'accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': "Bearer ${prefs.getString('accessToken')}",
+        },
+      );
+
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        jsonResponse = jsonDecode(response.body);
+        globalNavigatorKey.currentState?.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => MainHome()),
+              (Route<dynamic> route) => false,
+        );
+        notifyListeners();
+      } else if (response.statusCode == 400) {
+        jsonResponse = jsonDecode(response.body);
+        print('Error: $jsonResponse');
+        notifyListeners();
+      } else {
+        jsonResponse = jsonDecode(response.body);
+        throw jsonResponse['message'];
+      }
+    } catch (error) {
+      String errorMessage = error.toString();
+      print('Caught error: $errorMessage');
+      notifyListeners();
+    }
+  }
+
+  Future<void> deleteProductFromCart(String orderId, String productId) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    dynamic jsonResponse;
+    try {
+      String url = "${Env.BACKEND_URL}/user/cart/remove/$orderId/$productId";
+      final response = await http.delete(
+        Uri.parse(url),
+        headers: {
+          'accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': "Bearer ${prefs.getString('accessToken')}",
+        },
+      );
+
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        jsonResponse = jsonDecode(response.body);
+        final details = SuccessModel.fromJson(jsonResponse);
+        // Refresh cart items after deletion
+        await fetchAllCartItems();
+        notifyListeners();
+      } else if (response.statusCode == 400) {
+        jsonResponse = jsonDecode(response.body);
+        print('Error: $jsonResponse');
+        notifyListeners();
+      } else {
+        jsonResponse = jsonDecode(response.body);
+        throw jsonResponse['message'];
+      }
+    } catch (error) {
+      String errorMessage = error.toString();
+      print('Caught error: $errorMessage');
+      notifyListeners();
+    }
+  }
 
   Future<void> manipulateProductQuantity(int quantity,String productId) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -545,6 +621,103 @@ class StoreProvider with ChangeNotifier{
     hasNextStorePage = true;
     isLoadingMoreStores = false;
     notifyListeners();
+  }
+
+  Future<void> fetchStoreInformation(String storeId) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    dynamic jsonResponse;
+    try {
+      String url = "${Env.BACKEND_URL}/user/products/stores/details/$storeId";
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': "Bearer ${prefs.getString('accessToken')}",
+        },
+      );
+
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        jsonResponse = jsonDecode(response.body);
+        final details = StoreInformationModel.fromJson(jsonResponse);
+        storeInformation = details;
+        notifyListeners();
+      } else if (response.statusCode == 400) {
+        jsonResponse = jsonDecode(response.body);
+        print('Error: $jsonResponse');
+        notifyListeners();
+      } else {
+        jsonResponse = jsonDecode(response.body);
+        throw jsonResponse['message'];
+      }
+    } catch (error) {
+      String errorMessage = error.toString();
+      print('Caught error: $errorMessage');
+      notifyListeners();
+    }
+  }
+
+  Future<void> createOrder(
+      String orderId,
+      String addressId,
+      String deliveryTime,
+      String note,
+      String paymentMethod,
+      BuildContext context) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    dynamic jsonResponse;
+    try {
+      String url = "${Env.BACKEND_URL}/user/orders/create";
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': "Bearer ${prefs.getString('accessToken')}",
+        },
+        body: jsonEncode({
+          "orderId": orderId,
+          "addressId": addressId,
+          "deliveryTime": deliveryTime,
+          "note": note,
+          "paymentMethod": paymentMethod,
+        }),
+      );
+
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        jsonResponse = jsonDecode(response.body);
+        globalNavigatorKey.currentState?.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => MainHome()),
+              (Route<dynamic> route) => false,
+        );
+        showAlert('Success!', 'Order placed successfully!', 'close');
+        notifyListeners();
+      } else if (response.statusCode == 400) {
+        jsonResponse = jsonDecode(response.body);
+        final errorResponse = RegisterErrorModel.fromJson(jsonResponse);
+        print('Error: ${errorResponse.message}');
+        showAlert('Error', errorResponse.message!.join("\n"), 'close');
+        notifyListeners();
+      } else {
+        jsonResponse = jsonDecode(response.body);
+        throw jsonResponse['message'];
+      }
+    } catch (error) {
+      String errorMessage = error.toString();
+      print('Caught error: $errorMessage');
+      if (errorMessage.contains('Failed host lookup')) {
+        showAlert('Error', "Connection is down currently", 'close');
+      } else if (errorMessage.contains('DOCTYPE HTML') || errorMessage.contains('oken') || errorMessage.contains('Connection reset by peer')) {
+        showAlert('Error', "Something went wrong", 'close');
+      } else {
+        showAlert('Error', errorMessage, 'close');
+      }
+      notifyListeners();
+    }
   }
 
   showAlert(String title,String content,String defaultAction, {Function(bool)? onDismissed = null}) {

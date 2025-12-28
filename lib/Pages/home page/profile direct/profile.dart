@@ -51,7 +51,7 @@ class _ProfileState extends State<Profile> {
                       children: [
                         GestureDetector(
                           onTap:()async{
-                            await ImageServices().pickImages(ImageSource.gallery, context);
+                            await ImageServices().pickImages(ImageSource.gallery,'changeAvatar', context);
                           },
                           child: CircleAvatar(
                             backgroundImage: NetworkImage(profile.getAllProfileInfo?.data?.avatar??placeHolderLogo),

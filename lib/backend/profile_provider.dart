@@ -48,7 +48,7 @@ class ProfileProvider with ChangeNotifier{
         print('Error: $jsonResponse');
         notifyListeners();
         return null;
-      }else if (response.statusCode == 401) {
+      }else if (response.statusCode == 404) {
 
         UiUtils.showSnackBarFromTop(
             globalNavigatorKey.currentContext!,

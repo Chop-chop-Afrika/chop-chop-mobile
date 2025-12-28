@@ -46,14 +46,14 @@ class _AddressSearchBarState extends State<AddressSearchBar> {
               fontSize: 16
             ),
             ),
-            leading: IconButton(
-                onPressed: (){
-                  Navigator.push(context, MaterialPageRoute(builder: (context){
-                    return MainHome();
-                  }));
-                },
-                icon: Icon(Icons.close,color: Colors.black,)
-            ),
+            // leading: IconButton(
+            //     onPressed: (){
+            //       Navigator.push(context, MaterialPageRoute(builder: (context){
+            //         return MainHome();
+            //       }));
+            //     },
+            //     icon: Icon(Icons.close,color: Colors.black,)
+            // ),
             bottom: PreferredSize(
               preferredSize: Size.fromHeight(7),
               child: Divider(
