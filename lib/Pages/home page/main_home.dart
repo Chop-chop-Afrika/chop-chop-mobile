@@ -110,6 +110,7 @@ class _MainHomeState extends State<MainHome> {
       }
     });
   }
+
   _getAllNecessaryBackendData()async{
     Provider.of<ProfileProvider>(context,listen: false).getProfile();
     await Provider.of<AddressProvider>(context,listen: false).getAllAddresses();

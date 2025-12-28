@@ -3,6 +3,7 @@ import 'package:chop_chop_africa/backend/auth_provider.dart';
 import 'package:chop_chop_africa/backend/address_provider.dart';
 import 'package:chop_chop_africa/backend/profile_provider.dart';
 import 'package:chop_chop_africa/backend/store_provider.dart';
+import 'package:chop_chop_africa/backend/support_provider.dart';
 import 'package:chop_chop_africa/utility/iacolors.dart';
 import 'package:chop_chop_africa/utility/theme.dart';
 import 'package:flutter/material.dart';
@@ -25,7 +26,8 @@ void main() async{
         provider.ChangeNotifierProvider<AuthProvider>(create:(_) => AuthProvider()),
         provider.ChangeNotifierProvider<AddressProvider>(create:(_) => AddressProvider()),
         provider.ChangeNotifierProvider<ProfileProvider>(create:(_) => ProfileProvider()),
-        provider.ChangeNotifierProvider<StoreProvider>(create:(_) => StoreProvider())
+        provider.ChangeNotifierProvider<StoreProvider>(create:(_) => StoreProvider()),
+        provider.ChangeNotifierProvider<SupportProvider>(create:(_) => SupportProvider())
       ],
       child: MyApp(prefs: prefs,))
   );

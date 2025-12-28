@@ -1,4 +1,3 @@
-import 'package:chop_chop_africa/Pages/home%20page/order_direct/my_cart.dart';
 import 'package:chop_chop_africa/Pages/home%20page/order_direct/orders.dart';
 import 'package:chop_chop_africa/backend/store_provider.dart';
 import 'package:chop_chop_africa/utility/sizes.dart';
@@ -198,8 +197,8 @@ class _VendorGridState extends State<VendorGrid> {
   Widget _bottomModalWidget(List<StoreDetailRecord> itemDetails, int index, NumberFormat formatter, StoreProvider store){
     return StatefulBuilder(
         builder: (context, setState) {
-          double unitPrice = itemDetails[index].price;
-          double totalPriceRaw = unitPrice * _amount;
+          num unitPrice = itemDetails[index].price;
+          num totalPriceRaw = unitPrice * _amount;
           String totalPrice = formatter.format(totalPriceRaw);
           final variants = itemDetails[index].variants ?? [];
           bool hasVariants = variants.isNotEmpty;
@@ -208,8 +207,8 @@ class _VendorGridState extends State<VendorGrid> {
             grouped.putIfAbsent(v.type!, () => []);
             grouped[v.type]!.add(v);
           }
-          double effectiveUnitPrice = _selectedVariant?.price ?? unitPrice;
-          double variantPriceRaw = effectiveUnitPrice * _amount;
+          num effectiveUnitPrice = _selectedVariant?.price ?? unitPrice;
+          num variantPriceRaw = effectiveUnitPrice * _amount;
           String variantPrice = formatter.format(variantPriceRaw);
 
           return SizedBox(

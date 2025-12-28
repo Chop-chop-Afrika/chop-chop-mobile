@@ -24,7 +24,7 @@ class GetCartModel {
 
 class Data {
   List<Carts>? carts;
-  double? grandTotal;
+  num? grandTotal;
   int? itemCount;
 
   Data({this.carts, this.grandTotal, this.itemCount});
@@ -54,8 +54,8 @@ class Data {
 class Carts {
   String? orderId;
   Store? store;
-  List<CartItems>? items;
-  double? subtotal;
+  List<Items>? items;
+  num? subtotal;
 
   Carts({this.orderId, this.store, this.items, this.subtotal});
 
@@ -63,9 +63,9 @@ class Carts {
     orderId = json['orderId'];
     store = json['store'] != null ? new Store.fromJson(json['store']) : null;
     if (json['items'] != null) {
-      items = <CartItems>[];
+      items = <Items>[];
       json['items'].forEach((v) {
-        items!.add(new CartItems.fromJson(v));
+        items!.add(new Items.fromJson(v));
       });
     }
     subtotal = json['subtotal'];
@@ -113,29 +113,30 @@ class Store {
   }
 }
 
-class CartItems {
+class Items {
   String? id;
   Product? product;
-  dynamic variant;
+  Variant? variant;
   int? quantity;
-  double? unitPrice;
-  double? totalPrice;
+  num? unitPrice;
+  num? totalPrice;
   int? isSelected = 0;
 
-  CartItems(
+  Items(
       {this.id,
         this.product,
         this.variant,
         this.quantity,
         this.unitPrice,
         this.totalPrice,
-       this.isSelected = 0});
+      this.isSelected = 0});
 
-  CartItems.fromJson(Map<String, dynamic> json) {
+  Items.fromJson(Map<String, dynamic> json) {
     id = json['id'];
     product =
     json['product'] != null ? new Product.fromJson(json['product']) : null;
-    variant = json['variant'];
+    variant =
+    json['variant'] != null ? new Variant.fromJson(json['variant']) : null;
     quantity = json['quantity'];
     unitPrice = json['unitPrice'];
     totalPrice = json['totalPrice'];
@@ -147,7 +148,9 @@ class CartItems {
     if (this.product != null) {
       data['product'] = this.product!.toJson();
     }
-    data['variant'] = this.variant;
+    if (this.variant != null) {
+      data['variant'] = this.variant!.toJson();
+    }
     data['quantity'] = this.quantity;
     data['unitPrice'] = this.unitPrice;
     data['totalPrice'] = this.totalPrice;
@@ -176,6 +179,34 @@ class Product {
     data['name'] = this.name;
     data['description'] = this.description;
     data['banner'] = this.banner;
+    return data;
+  }
+}
+
+class Variant {
+  String? id;
+  String? type;
+  String? size;
+  num? price;
+  int? availableQty;
+
+  Variant({this.id, this.type, this.size, this.price, this.availableQty});
+
+  Variant.fromJson(Map<String, dynamic> json) {
+    id = json['id'];
+    type = json['type'];
+    size = json['size'];
+    price = json['price'];
+    availableQty = json['availableQty'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = new Map<String, dynamic>();
+    data['id'] = this.id;
+    data['type'] = this.type;
+    data['size'] = this.size;
+    data['price'] = this.price;
+    data['availableQty'] = this.availableQty;
     return data;
   }
 }

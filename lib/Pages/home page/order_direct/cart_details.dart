@@ -1,10 +1,14 @@
 import 'package:chop_chop_africa/backend/store_provider.dart';
 import 'package:chop_chop_africa/utility/sizes.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../../utility/iacolors.dart';
 import '../../../utility/uiutils.dart';
+import 'package:loading_indicator/loading_indicator.dart';
+import 'checkout.dart';
+
 
 class CartDetails extends StatefulWidget {
   final String orderId;
@@ -15,7 +19,7 @@ class CartDetails extends StatefulWidget {
 }
 
 class _CartDetailsState extends State<CartDetails> {
-  int _selected = 0;
+  bool _isLoading = false;
   @override
   Widget build(BuildContext context) {
     final formatter = NumberFormat("#,##0.00", "en_US");
@@ -61,69 +65,88 @@ class _CartDetailsState extends State<CartDetails> {
                 itemCount: cartItems.length,
                 itemBuilder: (context,index) {
                   var allCartItems = cartItems[index];
-                  return Card(
-                    elevation: 1,
-                    color: Theme.of(context).scaffoldBackgroundColor,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(9),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 8.0,top: 8,bottom: 8),
-                      child: ListTile(
-                        leading: Container(
-                          height: 15.pW,
-                          width: 15.pW,
-                          decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(14),
-                              image: DecorationImage(image: NetworkImage(allCartItems.product!.banner!),
-                                  fit: BoxFit.cover
+                  return Stack(
+                    children: [
+                      Card(
+                        elevation: 1,
+                        color: Theme.of(context).scaffoldBackgroundColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(9),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 8.0,top: 8,bottom: 8),
+                          child: ListTile(
+                            leading: Container(
+                              height: 15.pW,
+                              width: 15.pW,
+                              decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(14),
+                                  image: DecorationImage(image: NetworkImage(allCartItems.product!.banner!),
+                                      fit: BoxFit.cover
+                                  ),
                               ),
+                            ),
+                            title: UiUtils.subTitles(cutUnwantedPart(allCartItems.product!.name!), 14),
+                            subtitle: Text('${allCartItems.quantity} items ● \$${formatter.format(allCartItems.totalPrice)}',
+                            style: TextStyle(
+                              fontSize: 13
+                            ),
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _level(Icons.remove,
+                                        ()async{
+                                  setState(() {
+                                    if (allCartItems.quantity! > 1) {
+                                      allCartItems.quantity = allCartItems.quantity! - 1;
+                                      allCartItems.isSelected = 1;
+                                    }
+                                  });
+                                  await store.manipulateProductQuantity(allCartItems.quantity!, allCartItems.id!);
+                                        },
+                                  isSelected: allCartItems.isSelected == 1,
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                  child: Text(allCartItems.quantity.toString(),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14
+                                  ),
+                                  ),
+                                ),
+                                _level(Icons.add, ()async{
+                                  setState(() {
+                                    allCartItems.quantity = allCartItems.quantity! + 1;
+                                    allCartItems.isSelected = 2;
+                                  });
+                                  await store.manipulateProductQuantity(allCartItems.quantity!, allCartItems.id!);
+                                },
+                                  isSelected: allCartItems.isSelected == 2,
+                                ),
+
+                              ],
+                            )
                           ),
                         ),
-                        title: UiUtils.subTitles(cutUnwantedPart(allCartItems.product!.name!), 14),
-                        subtitle: Text('${allCartItems.quantity} items ● \$${formatter.format(allCartItems.totalPrice)}',
-                        style: TextStyle(
-                          fontSize: 13
-                        ),
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _level(Icons.remove,
-                                    ()async{
-                              setState(() {
-                                if (allCartItems.quantity! > 1) {
-                                  allCartItems.quantity = allCartItems.quantity! - 1;
-                                  allCartItems.isSelected = 1;
-                                }
-                              });
-                              await store.manipulateProductQuantity(allCartItems.quantity!, allCartItems.id!);
-                                    },
-                              isSelected: allCartItems.isSelected == 1,
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                              child: Text(allCartItems.quantity.toString(),
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14
-                              ),
-                              ),
-                            ),
-                            _level(Icons.add, ()async{
-                              setState(() {
-                                allCartItems.quantity = allCartItems.quantity! + 1;
-                                allCartItems.isSelected = 2;
-                              });
-                              await store.manipulateProductQuantity(allCartItems.quantity!, allCartItems.id!);
-                            },
-                              isSelected: allCartItems.isSelected == 2,
-                            ),
-        
-                          ],
-                        )
                       ),
-                    ),
+                      Positioned(
+                          top: 0,
+                          right: 0,
+                          child: IconButton(
+                              onPressed: () async {
+                                EasyLoading.show();
+                                await store.deleteProductFromCart(
+                                  widget.orderId,
+                                  allCartItems.product!.id!,
+                                );
+                                EasyLoading.dismiss();
+                              },
+                              icon: Icon(Icons.close, size: 15,)
+                          )
+                      )
+                    ],
                   );
                 }
               ),
@@ -135,14 +158,36 @@ class _CartDetailsState extends State<CartDetails> {
                     height: 6.5.pH,
                     width: 100.pW,
                     child: ElevatedButton(
-                        onPressed: (){},
-                        child: Text('Checkut')
+                        onPressed: (){
+                          Navigator.push(context, MaterialPageRoute(builder: (context){
+                            return Checkout(orderId: cart!.orderId!,subTotal: cart.subtotal!, productNumber: cartItems.length,storeId: cart.store!.id!,);
+                          }));
+                        },
+                        child: Text('Check Out')
                     ),
                   ),
                   Center(
                     child: TextButton(
-                        onPressed: (){},
-                        child: Text('Clear Selections',
+                        onPressed: ()async{
+                          setState(() {
+                            _isLoading = true;
+                          });
+                          await store.clearCart(widget.orderId);
+                          setState(() {
+                            _isLoading = false;
+                          });
+                        },
+                        child:  _isLoading?
+                        SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: LoadingIndicator(
+                                indicatorType: Indicator.ballPulse,
+                                colors: const [Colors.black],
+                                strokeWidth: 2,
+                                backgroundColor: Colors.transparent,
+                                pathBackgroundColor: Colors.black)):
+                        Text('Clear Selections',
                           style: TextStyle(
                               fontSize: 14
                           ),
