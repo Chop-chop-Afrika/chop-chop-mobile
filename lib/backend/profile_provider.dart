@@ -181,6 +181,11 @@ class ProfileProvider with ChangeNotifier{
       notifyListeners();
     }
   }
+  void clearData() {
+    getAllProfileInfo = null;
+    notifyListeners();
+  }
+
   showAlert(String title,String content,String defaultAction, {Function(bool)? onDismissed = null}) {
     UiUtils.showAlertDialog(
         context: globalNavigatorKey.currentContext!,

@@ -19,6 +19,7 @@ import '../Pages/home page/main_home.dart';
 import '../env/env.dart';
 import '../main.dart';
 import '../utility/uiutils.dart';
+import 'models/error_model.dart';
 import 'models/register_error.dart';
 
 class StoreProvider with ChangeNotifier{
@@ -287,15 +288,16 @@ class StoreProvider with ChangeNotifier{
 
         ),
       );
-      print('done');
+      print(response.statusCode);
+      print(jsonDecode(response.body));
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);
         notifyListeners();
       } else if (response.statusCode == 400) {
         jsonResponse = jsonDecode(response.body);
-        final errorResponse = RegisterErrorModel.fromJson(jsonResponse);
+        final errorResponse = ErrorModel.fromJson(jsonResponse);
         print('Error: ${errorResponse.message}');
-        showAlert('Error',errorResponse.message!.join("\n"), 'close');
+        showAlert('Error',errorResponse.message!, 'close');
         notifyListeners();
         return errorResponse;
       } else {
@@ -718,6 +720,28 @@ class StoreProvider with ChangeNotifier{
       }
       notifyListeners();
     }
+  }
+
+  void clearData() {
+    getAllStores = null;
+    allStoresList = [];
+    isLoadingMoreStores = false;
+    currentStorePage = 1;
+    hasNextStorePage = true;
+    getTopStores = [];
+    getTopVendors = [];
+    getAllStoreDetails = null;
+    getStoreDetailList = [];
+    isLoadingMoreStoreDetail = false;
+    currentStoreDetailPage = 1;
+    hasNextStoreDetailPage = true;
+    getAllProductCategories = null;
+    getCartItems = null;
+    activePackage = [];
+    searchStores = [];
+    searchProducts = [];
+    storeInformation = null;
+    notifyListeners();
   }
 
   showAlert(String title,String content,String defaultAction, {Function(bool)? onDismissed = null}) {

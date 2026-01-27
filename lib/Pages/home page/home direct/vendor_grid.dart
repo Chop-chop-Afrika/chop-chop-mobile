@@ -125,7 +125,8 @@ class _VendorGridState extends State<VendorGrid> {
                   },
                   staggeredTileBuilder: (context) => const StaggeredTile.fit(1)
               ),
-              store.getCartItems?.data?.carts?.isNotEmpty != null?
+
+              store.getCartItems!.data!.carts!.isNotEmpty?
               Align(
                 alignment: Alignment.bottomCenter,
                 child: SizedBox(
@@ -261,7 +262,7 @@ class _VendorGridState extends State<VendorGrid> {
                                 2.gap,
                                 bottomNavDescriptions(
                                   hasVariants ? "\$$variantPrice" : "\$$totalPrice",
-                                  24,
+                                  20,
                                   FontWeight.w800,
                                 ),
                                 if (hasVariants)
@@ -279,14 +280,14 @@ class _VendorGridState extends State<VendorGrid> {
                                           children: [
                                             Text(type,
                                                 style: TextStyle(
-                                                  fontSize: 18,
+                                                  fontSize: 16,
                                                   fontWeight: FontWeight.w600,
                                                 )),
                                             SizedBox(width: 6),
                                             Text("(Select 1)",
                                                 style: TextStyle(
                                                   color: Colors.black,
-                                                  fontSize: 13,
+                                                  fontSize: 11,
                                                 ))
                                           ],
                                         ),

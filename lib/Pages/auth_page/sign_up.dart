@@ -465,8 +465,13 @@ class _SignUpState extends State<SignUp> {
     if (pickedDate != null) {
       setState(() {
         // You can format it however you like
+        String dob =
+            "${pickedDate.year.toString().padLeft(4, '0')}-"
+            "${pickedDate.month.toString().padLeft(2, '0')}-"
+            "${pickedDate.day.toString().padLeft(2, '0')}";
+
         _dateController.text =
-        "${pickedDate.year}-${pickedDate.month}-${pickedDate.day}";
+        dob;
       });
     }
   }

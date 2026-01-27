@@ -404,6 +404,15 @@ class AddressProvider with ChangeNotifier{
 
 
 
+  void clearData() {
+    searchedAddress = null;
+    currentAddress = null;
+    addressList = [];
+    defaultAddress = null;
+    getPlaceDetails = null;
+    notifyListeners();
+  }
+
   showAlert(String title,String content,String defaultAction, {Function(bool)? onDismissed = null}) {
     UiUtils.showAlertDialog(
         context: globalNavigatorKey.currentContext!,

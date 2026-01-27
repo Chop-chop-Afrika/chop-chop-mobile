@@ -32,7 +32,7 @@ class SearchProductData {
   String? productCategoryId;
   String? storeId;
   String? name;
-  double? price;
+  num? price;
   String? description;
   String? banner;
   String? status;
@@ -114,8 +114,8 @@ class Stores {
   String? phone;
   String? logo;
   String? location;
-  double? longitude;
-  double? latitude;
+  num? longitude;
+  num? latitude;
   String? deliveryTime;
   String? openTime;
   String? closeTime;
@@ -217,7 +217,7 @@ class Variants {
   String? productId;
   String? type;
   String? size;
-  double? price;
+  num? price;
   int? availableQty;
   int? stockQty;
   String? createdAt;

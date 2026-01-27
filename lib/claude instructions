@@ -1,2 +1,11 @@
-when  user selects an image, I want it displayed nicely somewhere in the screen.. maybe just a small
-display above the textfield?.. use your discretion, i just want it to look good
+curl -X 'POST' \
+  'https://chop-africa-backend.onrender.com/user/logout' \
+  -H 'accept: */*' \
+  -d ''
+
+  okay  in the auth_provider I want you to create this api.. no need for a response it is for logging out
+  then go to the profile.dart  and on the logout, call this api. when it suceeds and we can logout
+  I want you to close and stop everything this needs to be stopped.. like the sharedpreference,
+  variables with data on them etc.. scan the whole app and do that
+
+  then navigate the user to the GetStarted screen.. use the pushandremoveuntil

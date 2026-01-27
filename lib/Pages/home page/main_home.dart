@@ -11,6 +11,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 
+import '../../backend/support_provider.dart';
+
 
 class MainHome extends StatefulWidget {
   const MainHome({super.key,});
@@ -120,6 +122,8 @@ class _MainHomeState extends State<MainHome> {
       Provider.of<StoreProvider>(context,listen: false).fetchTopVendors('RESTAURANT',getLatLng.latitude.toString(), getLatLng.longitude.toString());
       Provider.of<StoreProvider>(context,listen: false).fetchAllProductCategories();
       Provider.of<StoreProvider>(context,listen: false).fetchAllCartItems();
+      Provider.of<SupportProvider>(context, listen: false).getSupportInfo();
+      Provider.of<SupportProvider>(context, listen: false).fetchUserTickets();
     }
   }
 }
