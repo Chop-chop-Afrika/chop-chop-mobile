@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:chop_chop_africa/Pages/home%20page/support_direct/support_messages.dart';
+import 'package:chop_chop_africa/Pages/home%20page/support_direct/ticket_history.dart';
 import 'package:chop_chop_africa/backend/support_provider.dart';
 import 'package:chop_chop_africa/utility/iacolors.dart';
 import 'package:chop_chop_africa/utility/image_services.dart';
@@ -23,12 +24,6 @@ class _SupportState extends State<Support> {
   final ImageServices _imageServices = ImageServices();
   bool _isLoading = false;
 
-  @override
-  void initState() {
-    super.initState();
-    final supportProvider = Provider.of<SupportProvider>(context, listen: false);
-    supportProvider.getSupportInfo();
-  }
 
   @override
   void dispose() {
@@ -39,50 +34,60 @@ class _SupportState extends State<Support> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 5.pW),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                2.gap,
-                Text(
-                  'Contact Support',
-                  style: TextStyle(
-                    fontSize: 6.pW,
-                    fontWeight: FontWeight.w700,
-                  ),
+    return Consumer<SupportProvider>(
+      builder: (context, supportProvider, child) {
+        // Show ticket history if there are tickets
+        if (supportProvider.userTicketsList.isNotEmpty) {
+          return TicketHistory();
+        }
+
+        // Otherwise show the support form
+        return Scaffold(
+          body: SafeArea(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 5.pW),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    2.gap,
+                    Text(
+                      'Contact Support',
+                      style: TextStyle(
+                        fontSize: 6.pW,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    1.gap,
+                    Text(
+                      'Get help from our support team. We\'ll get back to you as soon as possible',
+                      style: TextStyle(
+                        fontSize: 3.5.pW,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                    2.gap,
+                    _buildSectionHeader('Category'),
+                    1.gap,
+                    _buildCategoryDropdown(),
+                    2.gap,
+                    _buildSectionHeader('Image attachment'),
+                    1.gap,
+                    _buildImageAttachment(),
+                    2.gap,
+                    _buildSectionHeader('Message'),
+                    1.gap,
+                    _buildMessageField(theme),
+                    3.gap,
+                    _buildSubmitButton(),
+                    2.gap,
+                  ],
                 ),
-                1.gap,
-                Text(
-                  'Get help from our support team. We\'ll get back to you as soon as possible',
-                  style: TextStyle(
-                    fontSize: 3.5.pW,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-                2.gap,
-                _buildSectionHeader('Category'),
-                1.gap,
-                _buildCategoryDropdown(),
-                2.gap,
-                _buildSectionHeader('Image attachment'),
-                1.gap,
-                _buildImageAttachment(),
-                2.gap,
-                _buildSectionHeader('Message'),
-                1.gap,
-                _buildMessageField(theme),
-                3.gap,
-                _buildSubmitButton(),
-                2.gap,
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 

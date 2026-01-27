@@ -4,11 +4,12 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:path/path.dart' as path;
 import '../env/env.dart';
 import '../main.dart';
 import '../utility/uiutils.dart';
 import 'models/get_ticket_details_model.dart';
+import 'models/get_user_tickets_model.dart';
 import 'models/register_error.dart';
 import 'models/submit_initial_message_model.dart';
 import 'models/support_info_model.dart';
@@ -17,6 +18,13 @@ class SupportProvider with ChangeNotifier{
   String? supportImage;
   SupportInfoModel? supportInfo;
   GetTicketDetailsModel? ticketDetails;
+  GetUserTicketsModel? allUserTickets;
+  List<Record> userTicketsList = [];
+
+  // Pagination properties
+  bool isLoadingMoreTickets = false;
+  bool hasNextTicketsPage = false;
+  int currentTicketsPage = 1;
 
   getSupportImage(String image){
     supportImage = image;
@@ -30,6 +38,7 @@ class SupportProvider with ChangeNotifier{
       ) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     dynamic jsonResponse;
+
     try {
       String url = "${Env.BACKEND_URL}/support/tickets";
 
@@ -46,11 +55,17 @@ class SupportProvider with ChangeNotifier{
 
       // Add image attachment if available
       if (supportImage != null && supportImage!.isNotEmpty) {
+        final extension = path.extension(supportImage!).toLowerCase();
+
+        final mediaType = extension == '.png'
+            ? http.MediaType('image', 'png')
+            : http.MediaType('image', 'jpeg');
         File imageFile = File(supportImage!);
         request.files.add(
           await http.MultipartFile.fromPath(
             'attachment',
             imageFile.path,
+            contentType: mediaType,
           ),
         );
       } else {
@@ -184,11 +199,17 @@ class SupportProvider with ChangeNotifier{
 
       // Add image attachment if available
       if (supportImage != null && supportImage!.isNotEmpty) {
+        final extension = path.extension(supportImage!).toLowerCase();
+
+        final mediaType = extension == '.png'
+            ? http.MediaType('image', 'png')
+            : http.MediaType('image', 'jpeg');
         File imageFile = File(supportImage!);
         request.files.add(
           await http.MultipartFile.fromPath(
             'attachment',
             imageFile.path,
+            contentType: mediaType,
           ),
         );
       }
@@ -212,6 +233,67 @@ class SupportProvider with ChangeNotifier{
       String errorMessage = error.toString();
       print('Caught error: $errorMessage');
     }
+  }
+
+  Future<void> fetchUserTickets({bool loadMore = false}) async {
+    if (loadMore && (isLoadingMoreTickets || !hasNextTicketsPage)) return;
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    dynamic jsonResponse;
+    try {
+      if (loadMore) {
+        isLoadingMoreTickets = true;
+        notifyListeners();
+      }
+
+      String url = "${Env.BACKEND_URL}/support/tickets?page=$currentTicketsPage&pageSize=10";
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'accept': '*/*',
+          'Authorization': "Bearer ${prefs.getString('accessToken')}",
+        },
+      );
+
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        jsonResponse = jsonDecode(response.body);
+        final tickets = GetUserTicketsModel.fromJson(jsonResponse);
+        allUserTickets = tickets;
+        hasNextTicketsPage = tickets.data?.hasNextPage ?? false;
+        currentTicketsPage = tickets.data?.nextPage ?? currentTicketsPage;
+        userTicketsList.addAll(tickets.data?.record ?? []);
+        notifyListeners();
+      } else if (response.statusCode == 400) {
+        jsonResponse = jsonDecode(response.body);
+        print('Error: $jsonResponse');
+        notifyListeners();
+      } else {
+        jsonResponse = jsonDecode(response.body);
+        throw jsonResponse['message'];
+      }
+    } catch (error) {
+      String errorMessage = error.toString();
+      print('Caught error: $errorMessage');
+      notifyListeners();
+    } finally {
+      if (loadMore) {
+        isLoadingMoreTickets = false;
+      }
+      notifyListeners();
+    }
+  }
+
+  void clearData() {
+    supportImage = null;
+    supportInfo = null;
+    ticketDetails = null;
+    allUserTickets = null;
+    userTicketsList = [];
+    isLoadingMoreTickets = false;
+    hasNextTicketsPage = false;
+    currentTicketsPage = 1;
+    notifyListeners();
   }
 
   showAlert(String title, String content, String defaultAction, {Function(bool)? onDismissed}) {

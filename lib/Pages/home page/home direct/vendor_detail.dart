@@ -85,11 +85,19 @@ class _VendorDetailState extends State<VendorDetail> {
                       tabs: [
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 8.0),
-                          child: Text('All Products'),
+                          child: Text('All Products',
+                          style: TextStyle(
+                            fontSize: 14
+                          ),
+                          ),
                         ),
                         ...categories.map((c) =>Padding(
                           padding: const EdgeInsets.symmetric(vertical: 8.0),
-                          child: Text(c.name!),
+                          child: Text(c.name!,
+                            style: TextStyle(
+                                fontSize: 14
+                            ),
+                          ),
                         ),).toList()
 
                       ],

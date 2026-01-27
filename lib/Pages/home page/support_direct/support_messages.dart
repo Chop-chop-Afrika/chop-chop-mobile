@@ -38,57 +38,63 @@ class _SupportMessagesState extends State<SupportMessages> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        centerTitle: true,
-        title: Text(
-          'Support',
-          style: TextStyle(fontSize: 16),
-        ),
-        leading: UiUtils.backButton(context),
-        bottom: PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(
-            color: IAColors.veryLightGrey,
-            height: 1,
+    return PopScope(
+      onPopInvokedWithResult: (didPop, dynamic){
+        final supportProvider = Provider.of<SupportProvider>(context, listen: false);
+        supportProvider.fetchUserTickets();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          centerTitle: true,
+          title: Text(
+            'Support',
+            style: TextStyle(fontSize: 16),
           ),
-        ),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: Consumer2<SupportProvider, ProfileProvider>(
-              builder: (context, supportProvider, profileProvider, child) {
-                final messages = supportProvider.ticketDetails?.data?.messages ?? [];
-                final firstName = profileProvider.getAllProfileInfo?.data?.firstName ?? '';
-                final lastName = profileProvider.getAllProfileInfo?.data?.lastName ?? '';
-
-                if (messages.isEmpty) {
-                  return Center(
-                    child: Text('No messages yet'),
-                  );
-                }
-
-                return ListView.builder(
-                  padding: EdgeInsets.symmetric(horizontal: 4.pW, vertical: 2.pH),
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    final message = messages[index];
-                    final isUser = message.senderType == 'user';
-
-                    return _buildMessageBubble(
-                      message: message.message ?? '',
-                      attachment: message.attachment,
-                      isUser: isUser,
-                      userInitials: '${firstName.isNotEmpty ? firstName[0].toUpperCase() : ''}${lastName.isNotEmpty ? lastName[0].toUpperCase() : ''}',
-                    );
-                  },
-                );
-              },
+          leading: UiUtils.backButton(context),
+          bottom: PreferredSize(
+            preferredSize: Size.fromHeight(1),
+            child: Divider(
+              color: IAColors.veryLightGrey,
+              height: 1,
             ),
           ),
-          _buildMessageInput(),
-        ],
+        ),
+        body: Column(
+          children: [
+            Expanded(
+              child: Consumer2<SupportProvider, ProfileProvider>(
+                builder: (context, supportProvider, profileProvider, child) {
+                  final messages = supportProvider.ticketDetails?.data?.messages ?? [];
+                  final firstName = profileProvider.getAllProfileInfo?.data?.firstName ?? '';
+                  final lastName = profileProvider.getAllProfileInfo?.data?.lastName ?? '';
+
+                  if (messages.isEmpty) {
+                    return Center(
+                      child: Text('No messages yet'),
+                    );
+                  }
+
+                  return ListView.builder(
+                    padding: EdgeInsets.symmetric(horizontal: 4.pW, vertical: 2.pH),
+                    itemCount: messages.length,
+                    itemBuilder: (context, index) {
+                      final message = messages[index];
+                      final isUser = message.senderType == 'user';
+
+                      return _buildMessageBubble(
+                        message: message.message ?? '',
+                        attachment: message.attachment,
+                        isUser: isUser,
+                        userInitials: '${firstName.isNotEmpty ? firstName[0].toUpperCase() : ''}${lastName.isNotEmpty ? lastName[0].toUpperCase() : ''}',
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+            _buildMessageInput(),
+          ],
+        ),
       ),
     );
   }

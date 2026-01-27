@@ -1,11 +1,17 @@
+import 'package:chop_chop_africa/Pages/auth_page/get_started.dart';
 import 'package:chop_chop_africa/Pages/home%20page/profile%20direct/addresses.dart';
 import 'package:chop_chop_africa/Pages/home%20page/profile%20direct/profile_details.dart';
+import 'package:chop_chop_africa/backend/address_provider.dart';
+import 'package:chop_chop_africa/backend/auth_provider.dart';
 import 'package:chop_chop_africa/backend/profile_provider.dart';
+import 'package:chop_chop_africa/backend/store_provider.dart';
+import 'package:chop_chop_africa/backend/support_provider.dart';
 import 'package:chop_chop_africa/utility/sizes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../utility/iacolors.dart';
 import '../../../utility/image_services.dart';
@@ -20,6 +26,38 @@ class Profile extends StatefulWidget {
 
 class _ProfileState extends State<Profile> {
   String placeHolderLogo = 'https://freesvg.org/img/chef-restaurant-logo-publicdomainvectors.png';
+
+  Future<void> _handleLogout() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
+    final addressProvider = Provider.of<AddressProvider>(context, listen: false);
+    final storeProvider = Provider.of<StoreProvider>(context, listen: false);
+    final supportProvider = Provider.of<SupportProvider>(context, listen: false);
+
+    // Call logout API
+    final success = await authProvider.logout();
+
+    if (success) {
+      // Clear SharedPreferences
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+
+      // Reset all providers by clearing their data
+      profileProvider.clearData();
+      addressProvider.clearData();
+      storeProvider.clearData();
+      supportProvider.clearData();
+
+      // Navigate to GetStarted screen
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => GetStarted()),
+          (Route<dynamic> route) => false,
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<ProfileProvider>(
@@ -110,15 +148,18 @@ class _ProfileState extends State<Profile> {
                   _accountInfo((){},'Frame 1171277849 (2).svg', 'Privacy and Policy', null),
                   _accountInfo((){},'Frame 1171277849 (2).svg', 'Terms of Service', null),
                   _accountInfo((){},'Frame 1171277849 (3).svg', 'Rate the app', null),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: SvgPicture.asset('assets/svg/Frame 1171277849 (4).svg'),
-                    title: Text('Log Out',
-                    ),
-                    titleTextStyle: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w400,
-                        color: Colors.red
+                  GestureDetector(
+                    onTap: _handleLogout,
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: SvgPicture.asset('assets/svg/Frame 1171277849 (4).svg'),
+                      title: Text('Log Out',
+                      ),
+                      titleTextStyle: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.red
+                      ),
                     ),
                   ),
                 ],

@@ -194,8 +194,8 @@ class _SearchProductsState extends State<SearchProducts> {
   Widget _bottomModalWidget(List<SearchProductData> itemDetails, int index, NumberFormat formatter, StoreProvider store){
     return StatefulBuilder(
         builder: (context, setState) {
-          double unitPrice = itemDetails[index].price!;
-          double totalPriceRaw = unitPrice * _amount;
+          num? unitPrice = itemDetails[index].price!;
+          num? totalPriceRaw = unitPrice * _amount;
           String totalPrice = formatter.format(totalPriceRaw);
           final variants = itemDetails[index].variants ?? [];
           bool hasVariants = variants.isNotEmpty;
@@ -204,8 +204,8 @@ class _SearchProductsState extends State<SearchProducts> {
             grouped.putIfAbsent(v.type!, () => []);
             grouped[v.type]!.add(v);
           }
-          double effectiveUnitPrice = _selectedVariant?.price ?? unitPrice;
-          double variantPriceRaw = effectiveUnitPrice * _amount;
+          num? effectiveUnitPrice = _selectedVariant?.price ?? unitPrice;
+          num? variantPriceRaw = effectiveUnitPrice * _amount;
           String variantPrice = formatter.format(variantPriceRaw);
 
           return SizedBox(

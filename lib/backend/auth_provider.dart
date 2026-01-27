@@ -225,6 +225,32 @@ class AuthProvider with ChangeNotifier{
     }
   }
 
+  Future<bool> logout() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    try {
+      String url = "${Env.BACKEND_URL}/user/logout";
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': "Bearer ${prefs.getString('accessToken')}",
+        },
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print('Logout successful');
+        return true;
+      } else {
+        print('Logout failed with status: ${response.statusCode}');
+        return false;
+      }
+    } catch (error) {
+      print('Logout error: $error');
+      return false;
+    }
+  }
+
 
   showAlert(String title,String content,String defaultAction, {Function(bool)? onDismissed = null}) {
     UiUtils.showAlertDialog(

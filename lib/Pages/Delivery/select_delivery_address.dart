@@ -6,6 +6,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../utility/iacolors.dart';
 
 class AddressSearchBar extends StatefulWidget {
@@ -72,7 +73,9 @@ class _AddressSearchBarState extends State<AddressSearchBar> {
                     return TextField(
                       controller: controller,
 
-                      onChanged: (v){
+                      onChanged: (v)async{
+                        SharedPreferences pref = await SharedPreferences.getInstance();
+                        print(pref.getString('accessToken'));
                         address.searchForAddress(v);
                       },
                       focusNode: focusNode,
