@@ -6,6 +6,9 @@ import 'package:chop_chop_africa/backend/store_provider.dart';
 import 'package:chop_chop_africa/backend/support_provider.dart';
 import 'package:chop_chop_africa/utility/iacolors.dart';
 import 'package:chop_chop_africa/utility/theme.dart';
+import 'package:chop_chop_africa/backend/notification_service.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -20,7 +23,13 @@ final GlobalKey<NavigatorState> globalNavigatorKey = GlobalKey<NavigatorState>()
 
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  await NotificationService.instance.initialize();
   final SharedPreferences prefs = await SharedPreferences.getInstance();
+  if (prefs.getString('accessToken') != null) {
+    NotificationService.instance.registerTokenWithBackend();
+  }
   runApp(provider.MultiProvider(
       providers: [
         provider.ChangeNotifierProvider<AuthProvider>(create:(_) => AuthProvider()),

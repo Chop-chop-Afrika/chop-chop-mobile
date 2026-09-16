@@ -65,6 +65,9 @@ dependencies:
   path: ^1.9.1
   path_provider: ^2.1.5
   flutter_image_compress: ^2.4.0
+  firebase_core: ^4.15.0
+  firebase_messaging: ^16.7.0
+  flutter_local_notifications: ^22.3.1
 
 
 dev_dependencies:

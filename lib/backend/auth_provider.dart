@@ -6,6 +6,7 @@ import 'package:chop_chop_africa/backend/models/error_model.dart';
 import 'package:chop_chop_africa/backend/models/register_error.dart';
 import 'package:chop_chop_africa/backend/models/success_model.dart';
 import 'package:chop_chop_africa/backend/models/verification_model.dart';
+import 'package:chop_chop_africa/backend/notification_service.dart';
 import 'package:chop_chop_africa/main.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -141,6 +142,7 @@ class AuthProvider with ChangeNotifier{
         final verifyResponse = VerificationModel.fromJson(jsonResponse);
         print('Success: ${verifyResponse.message}');
         await prefs.setString('accessToken', verifyResponse.accessToken!);
+        await NotificationService.instance.registerTokenWithBackend();
         globalNavigatorKey.currentState?.pushReplacement(
           MaterialPageRoute(builder: (_) => DeliveryIntro()),
         );
@@ -194,6 +196,7 @@ class AuthProvider with ChangeNotifier{
         final verifyResponse = VerificationModel.fromJson(jsonResponse);
         print('Success: ${verifyResponse.message}');
         await prefs.setString('accessToken', verifyResponse.accessToken!);
+        await NotificationService.instance.registerTokenWithBackend();
         globalNavigatorKey.currentState?.pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => MainHome()),
               (Route<dynamic> route) => false,
@@ -240,6 +243,7 @@ class AuthProvider with ChangeNotifier{
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         print('Logout successful');
+        await NotificationService.instance.deleteToken();
         return true;
       } else {
         print('Logout failed with status: ${response.statusCode}');

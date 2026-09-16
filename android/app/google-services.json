@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "104448855890",
+    "project_id": "chopchopuser",
+    "storage_bucket": "chopchopuser.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:104448855890:android:c0bbdba9cb485235cc748b",
+        "android_client_info": {
+          "package_name": "com.chopper.chop_chop_africa"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC422mmw9DqSF9F1-LRhh8ceCUPWGH_sxY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
