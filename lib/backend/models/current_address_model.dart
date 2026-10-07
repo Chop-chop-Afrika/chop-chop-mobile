@@ -31,8 +31,8 @@ class CurrentAddressInfo {
 
   CurrentAddressInfo.fromJson(Map<String, dynamic> json) {
     address = json['address'];
-    latitude = json['latitude'];
-    longitude = json['longitude'];
+    latitude = (json['latitude'] as num?)?.toDouble();
+    longitude = (json['longitude'] as num?)?.toDouble();
   }
 
   Map<String, dynamic> toJson() {

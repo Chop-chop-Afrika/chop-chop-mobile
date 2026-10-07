@@ -116,8 +116,8 @@ class Record {
     phone = json['phone'];
     logo = json['logo'];
     location = json['location'];
-    longitude = json['longitude'];
-    latitude = json['latitude'];
+    longitude = (json['longitude'] as num?)?.toDouble();
+    latitude = (json['latitude'] as num?)?.toDouble();
     deliveryTime = json['delivery_time'];
     openTime = json['open_time'];
     closeTime = json['close_time'];
@@ -125,7 +125,7 @@ class Record {
     createdAt = json['createdAt'];
     updatedAt = json['updatedAt'];
     status = json['status'];
-    distance = json['distance'];
+    distance = (json['distance'] as num?)?.toDouble();
   }
 
   Map<String, dynamic> toJson() {

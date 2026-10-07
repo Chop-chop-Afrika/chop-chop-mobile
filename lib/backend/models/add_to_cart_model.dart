@@ -29,8 +29,8 @@ class Data {
   Data({this.itemPrice, this.totalPrice});
 
   Data.fromJson(Map<String, dynamic> json) {
-    itemPrice = json['itemPrice'];
-    totalPrice = json['totalPrice'];
+    itemPrice = (json['itemPrice'] as num?)?.toDouble();
+    totalPrice = (json['totalPrice'] as num?)?.toDouble();
   }
 
   Map<String, dynamic> toJson() {

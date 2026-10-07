@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:chop_chop_africa/Pages/auth_page/get_started.dart';
 import 'package:chop_chop_africa/backend/models/profile_model.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
+import 'api_client.dart';
 import 'package:path/path.dart' as path;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
@@ -26,7 +26,7 @@ class ProfileProvider with ChangeNotifier{
     dynamic jsonResponse;
     try {
       String url = "${Env.BACKEND_URL}/user/profile";
-      final response = await http.get(
+      final response = await apiClient.get(
         Uri.parse(url),
         headers: {
           'accept': 'application/json',
@@ -35,7 +35,6 @@ class ProfileProvider with ChangeNotifier{
         },
       );
 
-      print('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);
@@ -48,17 +47,9 @@ class ProfileProvider with ChangeNotifier{
         print('Error: $jsonResponse');
         notifyListeners();
         return null;
-      }else if (response.statusCode == 404) {
-
-        UiUtils.showSnackBarFromTop(
-            globalNavigatorKey.currentContext!,
-            'Token has expired, Login to continue'
-        );
-        await prefs.clear();
-        globalNavigatorKey.currentState?.pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => GetStarted()),
-              (Route<dynamic> route) => false,
-        );
+      }else if (response.statusCode == 401) {
+        // The session expired. apiClient.onUnauthorized already signed the
+        // user out and returned them to the start screen, so just bail.
         notifyListeners();
         return null;
       } else {
@@ -79,7 +70,7 @@ class ProfileProvider with ChangeNotifier{
     notifyListeners();
     try {
       String url = "${Env.BACKEND_URL}/user/profile/update";
-      final response = await http.patch(
+      final response = await apiClient.patch(
         Uri.parse(url),
         headers: {
           'accept': 'application/json',
@@ -153,10 +144,9 @@ class ProfileProvider with ChangeNotifier{
       );
 
       // Send request
-      final streamedResponse = await request.send();
+      final streamedResponse = await apiClient.send(request);
       final response = await http.Response.fromStream(streamedResponse);
 
-      print('Response body: ${response.body}');
 
       // Handle success
       if (response.statusCode == 200 || response.statusCode == 201) {

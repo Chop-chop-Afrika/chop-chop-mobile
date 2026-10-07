@@ -66,17 +66,17 @@ class TopStoresData {
     name = json['name'];
     logo = json['logo'];
     location = json['location'];
-    longitude = json['longitude'];
-    latitude = json['latitude'];
+    longitude = (json['longitude'] as num?)?.toDouble();
+    latitude = (json['latitude'] as num?)?.toDouble();
     deliveryTime = json['delivery_time'];
     openTime = json['open_time'];
     closeTime = json['close_time'];
     type = json['type'];
     createdAt = json['createdAt'];
     updatedAt = json['updatedAt'];
-    averageRating = json['averageRating'];
+    averageRating = (json['averageRating'] as num?)?.toDouble();
     totalRatings = json['totalRatings'];
-    distance = json['distance'];
+    distance = (json['distance'] as num?)?.toDouble();
   }
 
   Map<String, dynamic> toJson() {

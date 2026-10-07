@@ -41,8 +41,8 @@ AddressList.fromJson(Map<String, dynamic> json) {
 id = json['id'];
 userId = json['userId'];
 address = json['address'];
-longitude = json['longitude'];
-latitude = json['latitude'];
+longitude = (json['longitude'] as num?)?.toDouble();
+latitude = (json['latitude'] as num?)?.toDouble();
 defaut = json['default'];
 createdAt = json['createdAt'];
 updatedAt = json['updatedAt'];

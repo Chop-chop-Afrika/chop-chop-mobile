@@ -10,6 +10,7 @@ import 'package:chop_chop_africa/backend/models/success_model.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'api_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../env/env.dart';
@@ -31,7 +32,7 @@ class AddressProvider with ChangeNotifier{
     dynamic jsonResponse;
     try {
       String url = "${Env.BACKEND_URL}/user/address/search?q=$search";
-      final response = await http.get(
+      final response = await apiClient.get(
         Uri.parse(url),
         headers: {
           'accept': 'application/json',
@@ -40,7 +41,6 @@ class AddressProvider with ChangeNotifier{
         },
       );
 
-      print('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);
@@ -76,7 +76,7 @@ class AddressProvider with ChangeNotifier{
     dynamic jsonResponse;
     try {
       String url = "${Env.BACKEND_URL}/user/address/current-location?lat=$lat&lng=$lng";
-      final response = await http.get(
+      final response = await apiClient.get(
         Uri.parse(url),
         headers: {
           'accept': 'application/json',
@@ -85,7 +85,6 @@ class AddressProvider with ChangeNotifier{
         },
       );
 
-      print('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);
@@ -117,7 +116,7 @@ class AddressProvider with ChangeNotifier{
     print('this is $placeId');
     try {
       String url = "${Env.BACKEND_URL}/user/address/create-from-place";
-      final response = await http.post(
+      final response = await apiClient.post(
         Uri.parse(url),
         headers: {
           'accept': 'application/json',
@@ -170,7 +169,7 @@ class AddressProvider with ChangeNotifier{
     notifyListeners();
     try {
       String url = "${Env.BACKEND_URL}/user/address/create";
-      final response = await http.post(
+      final response = await apiClient.post(
         Uri.parse(url),
         headers: {
           'accept': 'application/json',
@@ -223,7 +222,7 @@ class AddressProvider with ChangeNotifier{
     dynamic jsonResponse;
     try {
       String url = "${Env.BACKEND_URL}/user/address/all";
-      final response = await http.get(
+      final response = await apiClient.get(
         Uri.parse(url),
         headers: {
           'accept': 'application/json',
@@ -232,7 +231,6 @@ class AddressProvider with ChangeNotifier{
         },
       );
 
-      print('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);
@@ -277,7 +275,7 @@ class AddressProvider with ChangeNotifier{
     notifyListeners();
     try {
       String url = "${Env.BACKEND_URL}/user/address/update/$id";
-      final response = await http.patch(
+      final response = await apiClient.patch(
         Uri.parse(url),
         headers: {
           'accept': 'application/json',
@@ -330,7 +328,7 @@ class AddressProvider with ChangeNotifier{
     dynamic jsonResponse;
     try {
       String url = "${Env.BACKEND_URL}/user/address/place/$placeId";
-      final response = await http.get(
+      final response = await apiClient.get(
         Uri.parse(url),
         headers: {
           'accept': 'application/json',
@@ -339,7 +337,6 @@ class AddressProvider with ChangeNotifier{
         },
       );
 
-      print('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);
@@ -369,7 +366,7 @@ class AddressProvider with ChangeNotifier{
     dynamic jsonResponse;
     try {
       String url = "${Env.BACKEND_URL}/user/address/delete/$id";
-      final response = await http.delete(
+      final response = await apiClient.delete(
         Uri.parse(url),
         headers: {
           'accept': 'application/json',
@@ -378,7 +375,6 @@ class AddressProvider with ChangeNotifier{
         },
       );
 
-      print('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);

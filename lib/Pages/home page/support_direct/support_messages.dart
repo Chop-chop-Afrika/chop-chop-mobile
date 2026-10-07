@@ -36,6 +36,44 @@ class _SupportMessagesState extends State<SupportMessages> {
     super.dispose();
   }
 
+  /// Closing a ticket ends the conversation, so confirm before doing it.
+  Future<void> _confirmCloseTicket() async {
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Close this ticket?', style: TextStyle(fontSize: 17)),
+        content: const Text(
+          'You will not be able to send more messages on it. You can always '
+          'raise a new ticket.',
+          style: TextStyle(fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Keep it open')),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text('Close ticket',
+                style: TextStyle(color: Colors.red.shade400)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final supportProvider =
+        Provider.of<SupportProvider>(context, listen: false);
+    final bool ok = await UiUtils.runBlocking(
+      context,
+      'Closing your ticket',
+      () => supportProvider.closeTicket(widget.ticketId),
+    );
+    if (!mounted) return;
+    UiUtils.showSnackBarFromTop(
+        context, ok ? 'Ticket closed' : 'Could not close this ticket');
+    if (ok) Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -51,6 +89,33 @@ class _SupportMessagesState extends State<SupportMessages> {
             style: TextStyle(fontSize: 16),
           ),
           leading: UiUtils.backButton(context),
+          actions: [
+            Consumer<SupportProvider>(
+              builder: (context, supportProvider, _) {
+                final status = supportProvider.ticketDetails?.data?.status
+                    ?.toLowerCase();
+                // Nothing to close once it is already closed or resolved.
+                if (status == 'closed' || status == 'resolved') {
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 14),
+                    child: Center(
+                      child: Text(
+                        status == 'closed' ? 'Closed' : 'Resolved',
+                        style: TextStyle(
+                            fontSize: 12, color: Colors.grey.shade600),
+                      ),
+                    ),
+                  );
+                }
+                return TextButton(
+                  onPressed: _confirmCloseTicket,
+                  child: Text('Close ticket',
+                      style: TextStyle(
+                          fontSize: 13, color: Colors.red.shade400)),
+                );
+              },
+            ),
+          ],
           bottom: PreferredSize(
             preferredSize: Size.fromHeight(1),
             child: Divider(

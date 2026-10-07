@@ -5,8 +5,13 @@ import 'package:chop_chop_africa/backend/profile_provider.dart';
 import 'package:chop_chop_africa/backend/store_provider.dart';
 import 'package:chop_chop_africa/backend/support_provider.dart';
 import 'package:chop_chop_africa/utility/iacolors.dart';
+import 'package:chop_chop_africa/utility/uiutils.dart';
 import 'package:chop_chop_africa/utility/theme.dart';
+import 'package:chop_chop_africa/backend/api_client.dart';
 import 'package:chop_chop_africa/backend/notification_service.dart';
+import 'package:chop_chop_africa/backend/order_provider.dart';
+import 'package:chop_chop_africa/backend/package_provider.dart';
+import 'package:chop_chop_africa/backend/socket_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -26,9 +31,13 @@ void main() async{
   await Firebase.initializeApp();
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   await NotificationService.instance.initialize();
+  // One place that reacts to an expired session, for every endpoint.
+  apiClient.onUnauthorized = _onSessionExpired;
+
   final SharedPreferences prefs = await SharedPreferences.getInstance();
   if (prefs.getString('accessToken') != null) {
     NotificationService.instance.registerTokenWithBackend();
+    SocketService.instance.connect();
   }
   runApp(provider.MultiProvider(
       providers: [
@@ -36,12 +45,35 @@ void main() async{
         provider.ChangeNotifierProvider<AddressProvider>(create:(_) => AddressProvider()),
         provider.ChangeNotifierProvider<ProfileProvider>(create:(_) => ProfileProvider()),
         provider.ChangeNotifierProvider<StoreProvider>(create:(_) => StoreProvider()),
-        provider.ChangeNotifierProvider<SupportProvider>(create:(_) => SupportProvider())
+        provider.ChangeNotifierProvider<SupportProvider>(create:(_) => SupportProvider()),
+        provider.ChangeNotifierProvider<OrderProvider>(create:(_) => OrderProvider()),
+        provider.ChangeNotifierProvider<PackageProvider>(create:(_) => PackageProvider())
       ],
       child: MyApp(prefs: prefs,))
   );
   _easyLoading();
 }
+/// Signs the user out and returns them to the start screen when the access
+/// token expires. Tokens last 2 hours and there is no refresh endpoint yet, so
+/// this happens routinely rather than only on error.
+Future<void> _onSessionExpired() async {
+  SocketService.instance.disconnect();
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  await prefs.clear();
+
+  final BuildContext? context = globalNavigatorKey.currentContext;
+  if (context != null) {
+    UiUtils.showSnackBarFromTop(
+      context,
+      'Your session has expired, log in to continue',
+    );
+  }
+  globalNavigatorKey.currentState?.pushAndRemoveUntil(
+    MaterialPageRoute(builder: (_) => GetStarted()),
+    (Route<dynamic> route) => false,
+  );
+}
+
 _easyLoading(){
   EasyLoading.instance
     ..indicatorType = EasyLoadingIndicatorType.circle

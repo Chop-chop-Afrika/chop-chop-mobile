@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:chop_chop_africa/utility/sizes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:phone_text_field/phone_text_field.dart';
 import 'package:provider/provider.dart';
 
 import '../../backend/auth_provider.dart';
@@ -20,7 +19,7 @@ class Login extends StatefulWidget {
 }
 
 class _LoginState extends State<Login> {
-  final _phoneController = TextEditingController();
+  final _emailController = TextEditingController();
   bool _isLoading = false;
   @override
   Widget build(BuildContext context) {
@@ -67,7 +66,7 @@ class _LoginState extends State<Login> {
               ),
               0.5.gap,
               Center(
-                child: Text('You can log back into your account using your phone number',
+                child: Text('You can log back into your account using your email address',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                       fontSize: 13,
@@ -76,56 +75,33 @@ class _LoginState extends State<Login> {
                 ),
               ),
               2.gap,
-              title('Phone Number'),
-              Theme(
-                data: Theme.of(context).copyWith(
-                  dialogTheme: DialogThemeData(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    backgroundColor: Colors.grey[50],
-                  ),
-                  textTheme: const TextTheme(
-                    titleLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.bold), // dialog title
-                    bodyMedium: TextStyle(fontSize: 13), // country list text
-                    bodySmall: TextStyle(fontSize: 12),  // minor texts
-                  ),
-                ),
-                child: SizedBox(
-                  height: 9.5.pH,
-                  child: PhoneTextField(
-                    invalidNumberMessage: 'Please enter a valid phone number',
-                    autovalidateMode: AutovalidateMode.onUnfocus,
-                    initialCountryCode: 'NG',
-                    textStyle: TextStyle(
-                        color: IAColors.dialogDark
-                    ),
-                    decoration:  InputDecoration(
-                      helperText: '',
-                      hintText: 'Enter Phone Number',
-                      hintStyle: TextStyle(
-                          fontSize: 14
-                      ),
-                      filled: true,
-                      labelStyle: TextStyle(
-                          color: IAColors.dialogDark
-                      ),
-                      fillColor: Colors.grey.shade200,
-                    ),
-                    searchTextStyle: TextStyle(
-                        color: IAColors.dialogDark
-                    ),
-                    searchFieldInputDecoration: InputDecoration(
-                      filled: true,
-                      fillColor: Colors.grey.shade200,
-                      suffixIcon: Icon(Icons.search),
-                      hintText: 'Search country',
-                    ),
-                    countryViewOptions: CountryViewOptions.countryCodeWithFlag,
-                    onChanged: (phoneNumber) {
-                      debugPrint('Phone: ${phoneNumber.completeNumber}');
-                      setState(() {
-                        _phoneController.text = phoneNumber.completeNumber;
-                      });
-                    },
+              title('Email'),
+              SizedBox(
+                height: 11.pH,
+                child: TextFormField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  autofillHints: const [AutofillHints.email],
+                  autovalidateMode: AutovalidateMode.onUnfocus,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your email';
+                    }
+                    if (!RegExp(r'^.+@[a-zA-Z]+\.{1}[a-zA-Z]+(\.?[a-zA-Z]+)$')
+                        .hasMatch(value)) {
+                      return 'Please enter a valid email';
+                    }
+                    return null;
+                  },
+                  style: Theme.of(context).textTheme.bodySmall,
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Colors.grey.shade200,
+                    contentPadding: EdgeInsets.only(top: 3, left: 10),
+                    errorStyle: TextStyle(fontSize: 14),
+                    hintText: 'Enter your email',
+                    hintStyle: TextStyle(height: 2, fontSize: 14),
+                    helperText: '',
                   ),
                 ),
               ),
@@ -234,16 +210,20 @@ class _LoginState extends State<Login> {
       ),
     );
   }
-  login(AuthProvider authData)async{
-   if(_phoneController.text.isNotEmpty){
-     setState(() {
-       _isLoading= true;
-     });
-     await authData.login(_phoneController.text, context);
-     setState(() {
-       _isLoading= false;
-     });
-   }
+  login(AuthProvider authData) async {
+    final String email = _emailController.text.trim();
+    if (email.isEmpty) {
+      UiUtils.showSnackBarFromTop(context, 'Enter your email to continue');
+      return;
+    }
+    setState(() {
+      _isLoading = true;
+    });
+    await authData.login(email, context);
+    if (!mounted) return;
+    setState(() {
+      _isLoading = false;
+    });
   }
   Widget title(String text){
     return Padding(

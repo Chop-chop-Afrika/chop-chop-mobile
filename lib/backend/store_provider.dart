@@ -13,6 +13,7 @@ import 'package:chop_chop_africa/backend/models/user_stores_model.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'api_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../Pages/home page/main_home.dart';
@@ -54,7 +55,7 @@ class StoreProvider with ChangeNotifier{
         notifyListeners();
       }
       String url = "${Env.BACKEND_URL}/user/stores?page=$currentStorePage&pageSize=10&type=$type&lat=$latitude&lng=$longitude";
-      final response = await http.get(
+      final response = await apiClient.get(
         Uri.parse(url),
         headers: {
           'accept': 'application/json',
@@ -63,7 +64,6 @@ class StoreProvider with ChangeNotifier{
         },
       );
 
-      print('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);
@@ -100,7 +100,7 @@ class StoreProvider with ChangeNotifier{
     dynamic jsonResponse;
     try {
       String url = "${Env.BACKEND_URL}/user/stores/top?lat=$lat&lng=$long&limit=10";
-      final response = await http.get(
+      final response = await apiClient.get(
         Uri.parse(url),
         headers: {
           'accept': 'application/json',
@@ -109,7 +109,6 @@ class StoreProvider with ChangeNotifier{
         },
       );
 
-      print('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);
@@ -137,7 +136,7 @@ class StoreProvider with ChangeNotifier{
     dynamic jsonResponse;
     try {
       String url = "${Env.BACKEND_URL}/user/top-vendors?type=$type&lat=$lat&lng=$long";
-      final response = await http.get(
+      final response = await apiClient.get(
         Uri.parse(url),
         headers: {
           'accept': 'application/json',
@@ -146,7 +145,6 @@ class StoreProvider with ChangeNotifier{
         },
       );
 
-      print('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);
@@ -188,7 +186,7 @@ class StoreProvider with ChangeNotifier{
       String url = category == null?
           "${Env.BACKEND_URL}/user/products/store/$storeId?page=$currentStoreDetailPage&pageSize=10":
       "${Env.BACKEND_URL}/user/products/store/$storeId?page=$currentStoreDetailPage&pageSize=10&category=$category";
-      final response = await http.get(
+      final response = await apiClient.get(
         Uri.parse(url),
         headers: {
           'accept': 'application/json',
@@ -197,7 +195,6 @@ class StoreProvider with ChangeNotifier{
         },
       );
 
-      print('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);
@@ -233,7 +230,7 @@ class StoreProvider with ChangeNotifier{
     dynamic jsonResponse;
     try {
       String url = "${Env.BACKEND_URL}/user/products/categories";
-      final response = await http.get(
+      final response = await apiClient.get(
         Uri.parse(url),
         headers: {
           'accept': 'application/json',
@@ -242,7 +239,6 @@ class StoreProvider with ChangeNotifier{
         },
       );
 
-      print('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);
@@ -270,7 +266,7 @@ class StoreProvider with ChangeNotifier{
     notifyListeners();
     try {
       String url = "${Env.BACKEND_URL}/user/cart/add";
-      final response = await http.post(
+      final response = await apiClient.post(
         Uri.parse(url),
         headers: {
           'accept': 'application/json',
@@ -322,7 +318,7 @@ class StoreProvider with ChangeNotifier{
     dynamic jsonResponse;
     try {
       String url = "${Env.BACKEND_URL}/user/cart/remove/$orderId";
-      final response = await http.delete(
+      final response = await apiClient.delete(
         Uri.parse(url),
         headers: {
           'accept': 'application/json',
@@ -331,7 +327,6 @@ class StoreProvider with ChangeNotifier{
         },
       );
 
-      print('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);
@@ -360,7 +355,7 @@ class StoreProvider with ChangeNotifier{
     dynamic jsonResponse;
     try {
       String url = "${Env.BACKEND_URL}/user/cart/remove/$orderId/$productId";
-      final response = await http.delete(
+      final response = await apiClient.delete(
         Uri.parse(url),
         headers: {
           'accept': 'application/json',
@@ -369,7 +364,6 @@ class StoreProvider with ChangeNotifier{
         },
       );
 
-      print('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);
@@ -397,7 +391,7 @@ class StoreProvider with ChangeNotifier{
     dynamic jsonResponse;
     try {
       String url = "${Env.BACKEND_URL}/user/cart/$productId";
-      final response = await http.patch(
+      final response = await apiClient.patch(
         Uri.parse(url),
         headers: {
           'accept': 'application/json',
@@ -409,7 +403,6 @@ class StoreProvider with ChangeNotifier{
         }),
       );
 
-      print('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);
@@ -438,7 +431,7 @@ class StoreProvider with ChangeNotifier{
     dynamic jsonResponse;
     try {
       String url = "${Env.BACKEND_URL}/user/cart";
-      final response = await http.get(
+      final response = await apiClient.get(
         Uri.parse(url),
         headers: {
           'accept': 'application/json',
@@ -447,7 +440,6 @@ class StoreProvider with ChangeNotifier{
         },
       );
 
-      print('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);
@@ -469,82 +461,12 @@ class StoreProvider with ChangeNotifier{
     }
   }
 
-  Future<void> packageAction(String pickUpAddress,
-      String dropOffAddress,
-      String senderName,
-      String senderPhone,
-      String senderEmail,
-      String receiverName,
-      String receiverPhone,
-      String receiverEmail,
-      String type,
-      String mode,
-      double? pickUpLongitude,
-      double? pickUpLatitude,
-      double? dropOffLongitude,
-      double? dropOffLatitude
-      ) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    dynamic jsonResponse;
-    try {
-      String url = "${Env.BACKEND_URL}/user/packages/create";
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {
-          'accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Authorization': "Bearer ${prefs.getString('accessToken')}",
-        },
-        body: jsonEncode({
-          "pickupAddress": pickUpAddress,
-          "dropOffAddress": dropOffAddress,
-          "senderName": senderName,
-          "senderPhone": senderPhone,
-          "senderEmail": senderEmail,
-          "receiverName": receiverName,
-          "receiverPhone": receiverPhone,
-          "receiverEmail": receiverEmail,
-          "type": type,
-          "mode": mode,
-          "pickupLongitude": pickUpLongitude,
-          "pickupLatitude": pickUpLatitude,
-          "dropOffLongitude": dropOffLongitude,
-          "dropOffLatitude": dropOffLatitude
-        }),
-      );
-
-      print('Response body: ${response.body}');
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        jsonResponse = jsonDecode(response.body);
-        final details = SendAndReceivePackageModel.fromJson(jsonResponse);
-        globalNavigatorKey.currentState?.pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => MainHome()),
-              (Route<dynamic> route) => false,
-        );
-        showAlert('Success!', details.message!, 'close');
-        notifyListeners();
-      } else if (response.statusCode == 400) {
-        jsonResponse = jsonDecode(response.body);
-        print('Error: $jsonResponse');
-        notifyListeners();
-      } else {
-        jsonResponse = jsonDecode(response.body);
-        throw jsonResponse['message'];
-      }
-    } catch (error) {
-      String errorMessage = error.toString();
-      print('Caught error: $errorMessage');
-      notifyListeners();
-    }
-  }
-
   Future<void> searchProductsAndStores(String type, String search) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     dynamic jsonResponse;
     try {
       String url = "${Env.BACKEND_URL}/user/search?query=$search&type=$type";
-      final response = await http.get(
+      final response = await apiClient.get(
         Uri.parse(url),
         headers: {
           'accept': 'application/json',
@@ -553,7 +475,6 @@ class StoreProvider with ChangeNotifier{
         },
       );
 
-      print('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);
@@ -581,12 +502,13 @@ class StoreProvider with ChangeNotifier{
     }
   }
 
-  Future<void> getPackageStatus(String status) async {
+  /// Empties the whole cart across every store. Distinct from
+  /// [clearCart], which removes one store's cart by orderId.
+  Future<bool> clearEntireCart() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    dynamic jsonResponse;
     try {
-      String url = "${Env.BACKEND_URL}/user/packages/$status";
-      final response = await http.get(
+      String url = "${Env.BACKEND_URL}/user/cart/clear";
+      final response = await apiClient.delete(
         Uri.parse(url),
         headers: {
           'accept': 'application/json',
@@ -595,7 +517,32 @@ class StoreProvider with ChangeNotifier{
         },
       );
 
-      print('Response body: ${response.body}');
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        await fetchAllCartItems();
+        return true;
+      }
+      print('Clear cart failed: ${response.statusCode} ${response.body}');
+      return false;
+    } catch (error) {
+      print('Clear cart error: $error');
+      return false;
+    }
+  }
+
+  Future<void> getPackageStatus(String status) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    dynamic jsonResponse;
+    try {
+      String url = "${Env.BACKEND_URL}/user/packages/$status";
+      final response = await apiClient.get(
+        Uri.parse(url),
+        headers: {
+          'accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': "Bearer ${prefs.getString('accessToken')}",
+        },
+      );
+
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);
@@ -630,7 +577,7 @@ class StoreProvider with ChangeNotifier{
     dynamic jsonResponse;
     try {
       String url = "${Env.BACKEND_URL}/user/products/stores/details/$storeId";
-      final response = await http.get(
+      final response = await apiClient.get(
         Uri.parse(url),
         headers: {
           'accept': 'application/json',
@@ -639,7 +586,6 @@ class StoreProvider with ChangeNotifier{
         },
       );
 
-      print('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);
@@ -657,67 +603,6 @@ class StoreProvider with ChangeNotifier{
     } catch (error) {
       String errorMessage = error.toString();
       print('Caught error: $errorMessage');
-      notifyListeners();
-    }
-  }
-
-  Future<void> createOrder(
-      String orderId,
-      String addressId,
-      String deliveryTime,
-      String note,
-      String paymentMethod,
-      BuildContext context) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    dynamic jsonResponse;
-    try {
-      String url = "${Env.BACKEND_URL}/user/orders/create";
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {
-          'accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Authorization': "Bearer ${prefs.getString('accessToken')}",
-        },
-        body: jsonEncode({
-          "orderId": orderId,
-          "addressId": addressId,
-          "deliveryTime": deliveryTime,
-          "note": note,
-          "paymentMethod": paymentMethod,
-        }),
-      );
-
-      print('Response body: ${response.body}');
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        jsonResponse = jsonDecode(response.body);
-        globalNavigatorKey.currentState?.pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => MainHome()),
-              (Route<dynamic> route) => false,
-        );
-        showAlert('Success!', 'Order placed successfully!', 'close');
-        notifyListeners();
-      } else if (response.statusCode == 400) {
-        jsonResponse = jsonDecode(response.body);
-        final errorResponse = RegisterErrorModel.fromJson(jsonResponse);
-        print('Error: ${errorResponse.message}');
-        showAlert('Error', errorResponse.message!.join("\n"), 'close');
-        notifyListeners();
-      } else {
-        jsonResponse = jsonDecode(response.body);
-        throw jsonResponse['message'];
-      }
-    } catch (error) {
-      String errorMessage = error.toString();
-      print('Caught error: $errorMessage');
-      if (errorMessage.contains('Failed host lookup')) {
-        showAlert('Error', "Connection is down currently", 'close');
-      } else if (errorMessage.contains('DOCTYPE HTML') || errorMessage.contains('oken') || errorMessage.contains('Connection reset by peer')) {
-        showAlert('Error', "Something went wrong", 'close');
-      } else {
-        showAlert('Error', errorMessage, 'close');
-      }
       notifyListeners();
     }
   }

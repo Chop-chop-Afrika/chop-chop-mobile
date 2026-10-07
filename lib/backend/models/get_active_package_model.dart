@@ -84,10 +84,10 @@ class ActivePackageList {
     receiverEmail = json['receiverEmail'];
     type = json['type'];
     mode = json['mode'];
-    pickupLongitude = json['pickupLongitude'];
-    pickupLatitude = json['pickupLatitude'];
-    dropOffLongitude = json['dropOffLongitude'];
-    dropOffLatitude = json['dropOffLatitude'];
+    pickupLongitude = (json['pickupLongitude'] as num?)?.toDouble();
+    pickupLatitude = (json['pickupLatitude'] as num?)?.toDouble();
+    dropOffLongitude = (json['dropOffLongitude'] as num?)?.toDouble();
+    dropOffLatitude = (json['dropOffLatitude'] as num?)?.toDouble();
     status = json['status'];
     createdAt = json['createdAt'];
     updatedAt = json['updatedAt'];

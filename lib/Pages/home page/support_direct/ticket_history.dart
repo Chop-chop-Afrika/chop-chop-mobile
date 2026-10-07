@@ -380,9 +380,12 @@ class _TicketHistoryState extends State<TicketHistory> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => Support(),
+                        builder: (context) => Support(forceForm: true),
                       ),
-                    );
+                    ).then((_) {
+                      // Pick up a ticket raised while we were away.
+                      if (mounted) _loadTickets();
+                    });
                   },
             backgroundColor: isDisabled ? IAColors.lightGrey : Colors.white,
             elevation: isDisabled ? 0 : 6,

@@ -14,9 +14,12 @@ import 'package:loading_indicator/loading_indicator.dart';
 
 
 class VerificationPage extends StatefulWidget {
-  final String phoneNo;
+  final String email;
+
+  /// 'signup' after registering, 'login' when signing in. Decides which verify
+  /// endpoint is called and which mode the resend uses.
   final String mode;
-  const VerificationPage({super.key, required this.phoneNo, required this.mode});
+  const VerificationPage({super.key, required this.email, required this.mode});
 
   @override
   State<VerificationPage> createState() => _VerificationPageState();
@@ -27,6 +30,7 @@ class _VerificationPageState extends State<VerificationPage> {
   Timer? _timer;
   String? _otp;
   bool _isLoading = false;
+  bool _resending = false;
   TextEditingController _pinController = TextEditingController();
   void _startTimer() {
     const oneSec = Duration(seconds: 1);
@@ -34,8 +38,8 @@ class _VerificationPageState extends State<VerificationPage> {
       oneSec,
           (Timer timer) {
         if(mounted){
-          if (_start == 1) {
-
+          if (_start == 0) {
+            timer.cancel();
           }else {
             setState(() {
               _start--;
@@ -45,15 +49,32 @@ class _VerificationPageState extends State<VerificationPage> {
       },
     );
   }
-  void restartTimer() {
-    if (_timer != null) {
-      _timer!.cancel();
-    }
+  /// Asks the API for a fresh code, and only restarts the countdown if one was
+  /// really sent — otherwise the screen would imply a code is on its way.
+  Future<void> resendOtp() async {
+    if (_resending) return;
+    setState(() {
+      _resending = true;
+    });
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final bool sent = await authProvider.resendOtp(
+      widget.email,
+      widget.mode == 'signup'
+          ? AuthProvider.registrationMode
+          : AuthProvider.loginMode,
+    );
+    if (!mounted) return;
+    setState(() {
+      _resending = false;
+    });
+    if (!sent) return;
+
+    UiUtils.showSnackBarFromTop(context, 'A new code is on its way to ${widget.email}');
+    _timer?.cancel();
     setState(() {
       _start = 600;
     });
     _startTimer();
-
   }
   String _formatDuration(int seconds) {
     int minutes = seconds ~/ 60;
@@ -87,7 +108,7 @@ class _VerificationPageState extends State<VerificationPage> {
           children: [
             0.5.gap,
             Center(
-              child: Text('Verify your number',
+              child: Text('Verify your email',
                 style: TextStyle(
                     color: IAColors.black,
                     fontSize: 30,
@@ -100,7 +121,7 @@ class _VerificationPageState extends State<VerificationPage> {
               child: RichText(
                   textAlign: TextAlign.center,
                   text: TextSpan(
-                      text: 'We’ve sent a 4-digit code to ${widget.phoneNo} ',
+                      text: 'We’ve sent a 6-digit code to ',
                       style: const TextStyle(
                           color: Colors.black,
                           fontWeight: FontWeight.w300,
@@ -108,24 +129,11 @@ class _VerificationPageState extends State<VerificationPage> {
                       ),
                       children: <TextSpan>[
                         TextSpan(
-                          text: 'via '
-                        ),
-                        TextSpan(
-                            text: 'SMS ',
+                            text: widget.email,
                             style: TextStyle(
                               color: IAColors.primary,
-                              //decoration: TextDecoration.underline,
                             ),
                         ),
-                  TextSpan(
-                      text: 'and '
-                  ),
-                  TextSpan(
-                      text: 'Whatsapp',
-                      style: TextStyle(
-                        color: IAColors.primary,
-                        //decoration: TextDecoration.underline,
-                      ),)
                       ]
                   )
               )
@@ -194,17 +202,17 @@ class _VerificationPageState extends State<VerificationPage> {
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 TextButton(
-                  onPressed: restartTimer,
-                  child: _start != 1?
+                  onPressed: _start > 0 || _resending ? null : resendOtp,
+                  child: _start > 0?
                   Text('Expires ${_formatDuration(_start)}',
                     style: const TextStyle(
                         color: Color(0xffE8D28B),
                         fontWeight: FontWeight.w300,
                         fontSize: 14
                     ),
-                  ):const Text('Resend',
+                  ):Text(_resending ? 'Sending…' : 'Resend',
                     style: TextStyle(
-                        color:Color(0xffE8D28B),
+                        color: Color(0xffE8D28B),
                         fontWeight: FontWeight.w300,
                         fontSize: 14
                     ),
@@ -218,7 +226,7 @@ class _VerificationPageState extends State<VerificationPage> {
               width: 100.pW,
               child: ElevatedButton(
                 onPressed: ()async{
-                 await verifyOtp(_otp!, widget.phoneNo);
+                 await verifyOtp(_otp!, widget.email);
                 },
                 child: _isLoading?
                 SizedBox(
@@ -244,7 +252,7 @@ class _VerificationPageState extends State<VerificationPage> {
       ),
     );
   }
-  Future<void> verifyOtp(String otp, String phoneNo) async {
+  Future<void> verifyOtp(String otp, String email) async {
     if(_otp != null){
       setState(() {
         _isLoading = true;
@@ -252,9 +260,9 @@ class _VerificationPageState extends State<VerificationPage> {
       UiUtils.hideKeyboard(context);
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
      if(widget.mode == 'signup'){
-       await authProvider.verification(phoneNo, otp, context);
+       await authProvider.verification(email, otp, context);
      }else{
-       await authProvider.loginVerification(phoneNo, otp, context);
+       await authProvider.loginVerification(email, otp, context);
      }
      setState(() {
        _isLoading = false;

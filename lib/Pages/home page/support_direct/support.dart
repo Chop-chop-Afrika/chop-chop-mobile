@@ -12,7 +12,13 @@ import 'package:loading_indicator/loading_indicator.dart';
 import 'package:provider/provider.dart';
 
 class Support extends StatefulWidget {
-  const Support({super.key});
+  /// When true this always shows the new-ticket form.
+  ///
+  /// Reached from the tab, Support redirects to the ticket list if the user
+  /// already has tickets. The "new ticket" button needs the form itself, which
+  /// that redirect would otherwise make unreachable.
+  final bool forceForm;
+  const Support({super.key, this.forceForm = false});
 
   @override
   State<Support> createState() => _SupportState();
@@ -36,8 +42,9 @@ class _SupportState extends State<Support> {
     final theme = Theme.of(context);
     return Consumer<SupportProvider>(
       builder: (context, supportProvider, child) {
-        // Show ticket history if there are tickets
-        if (supportProvider.userTicketsList.isNotEmpty) {
+        // Show the ticket list instead of the form when the user already has
+        // tickets — unless they explicitly asked to raise a new one.
+        if (!widget.forceForm && supportProvider.userTicketsList.isNotEmpty) {
           return TicketHistory();
         }
 

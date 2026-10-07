@@ -72,8 +72,8 @@ class Data {
     phone = json['phone'];
     logo = json['logo'];
     location = json['location'];
-    longitude = json['longitude'];
-    latitude = json['latitude'];
+    longitude = (json['longitude'] as num?)?.toDouble();
+    latitude = (json['latitude'] as num?)?.toDouble();
     deliveryTime = json['delivery_time'];
     openTime = json['open_time'];
     closeTime = json['close_time'];
@@ -82,7 +82,7 @@ class Data {
     updatedAt = json['updatedAt'];
     status = json['status'];
     user = json['User'] != null ? new User.fromJson(json['User']) : null;
-    averageRating = json['averageRating'];
+    averageRating = (json['averageRating'] as num?)?.toDouble();
     totalRatings = json['totalRatings'];
   }
 

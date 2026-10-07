@@ -7,6 +7,7 @@ import 'package:flutter_email_sender/flutter_email_sender.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart' as launcher;
 import '../custom widgets/top_snackbar.dart';
+import 'iacolors.dart';
 
 
 class UiUtils {
@@ -189,5 +190,75 @@ class UiUtils {
         )
       ],
     );
+  }
+
+  /// Runs [action] behind a non-dismissible overlay, so the user can see that
+  /// something is happening and cannot tap anything meanwhile.
+  ///
+  /// The overlay is always torn down, including when [action] throws, so a
+  /// failure can never leave the user stuck behind a barrier they cannot
+  /// close. Use this for any awaited call the user triggered and must wait on.
+  ///
+  /// Note this does not use EasyLoading: the app sets `userInteractions = true`
+  /// globally, which makes its mask let taps through to the screen below.
+  static Future<T> runBlocking<T>(
+    BuildContext context,
+    String message,
+    Future<T> Function() action, {
+    String? subtitle,
+  }) async {
+    final NavigatorState navigator = Navigator.of(context, rootNavigator: true);
+    bool shown = true;
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      useRootNavigator: true,
+      builder: (_) => PopScope(
+        canPop: false,
+        child: Dialog(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  height: 34,
+                  width: 34,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: IAColors.primary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    subtitle,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      return await action();
+    } finally {
+      if (shown) {
+        shown = false;
+        navigator.pop();
+      }
+    }
   }
 }

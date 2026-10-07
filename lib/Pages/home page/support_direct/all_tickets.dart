@@ -14,6 +14,10 @@ class AllTickets extends StatefulWidget {
 }
 
 class _AllTicketsState extends State<AllTickets> {
+  /// False = active tickets (/support/tickets), true = closed ones
+  /// (/support/tickets/history). They are separate endpoints with slightly
+  /// different record shapes, so they are kept as separate lists.
+  bool _showingHistory = false;
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -25,7 +29,12 @@ class _AllTicketsState extends State<AllTickets> {
   void _onScroll() {
     if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent * 0.9) {
       final supportProvider = Provider.of<SupportProvider>(context, listen: false);
-      supportProvider.fetchUserTickets(loadMore: true);
+      // Paginate whichever list is actually on screen.
+      if (_showingHistory) {
+        supportProvider.fetchTicketHistory(loadMore: true);
+      } else {
+        supportProvider.fetchUserTickets(loadMore: true);
+      }
     }
   }
 
@@ -66,6 +75,44 @@ class _AllTicketsState extends State<AllTickets> {
     }
   }
 
+  Widget _segmentedToggle() {
+    return Row(
+      children: [
+        _toggleChip('Active', !_showingHistory, () {
+          setState(() => _showingHistory = false);
+        }),
+        SizedBox(width: 2.pW),
+        _toggleChip('Past tickets', _showingHistory, () {
+          setState(() => _showingHistory = true);
+          final provider =
+              Provider.of<SupportProvider>(context, listen: false);
+          if (!provider.historyLoadedOnce) provider.fetchTicketHistory();
+        }),
+      ],
+    );
+  }
+
+  Widget _toggleChip(String label, bool selected, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 4.pW, vertical: 1.pH),
+        decoration: BoxDecoration(
+          color: selected ? IAColors.primary : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 3.4.pW,
+            fontWeight: FontWeight.w600,
+            color: selected ? Colors.white : Colors.grey.shade700,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -84,15 +131,27 @@ class _AllTicketsState extends State<AllTickets> {
           padding: EdgeInsets.symmetric(horizontal: 5.pW, vertical: 2.pH),
           child: Column(
             children: [
+              _segmentedToggle(),
+              SizedBox(height: 1.5.pH),
               Expanded(
                 child: Consumer<SupportProvider>(
                   builder: (context, supportProvider, child) {
-                    final tickets = supportProvider.userTicketsList;
+                    final tickets = _showingHistory
+                        ? supportProvider.ticketHistoryList
+                        : supportProvider.userTicketsList;
+
+                    if (_showingHistory &&
+                        supportProvider.isLoadingHistory &&
+                        tickets.isEmpty) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
                     if (tickets.isEmpty) {
                       return Center(
                         child: Text(
-                          'No tickets found',
+                          _showingHistory
+                              ? 'No past tickets'
+                              : 'No tickets found',
                           style: TextStyle(
                             fontSize: 4.pW,
                             color: Colors.grey.shade600,

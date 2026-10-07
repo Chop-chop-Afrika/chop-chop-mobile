@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:http/http.dart' as http;
+import 'api_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../env/env.dart';
@@ -199,9 +199,19 @@ class NotificationService {
     await prefs.setString('fcmToken', token);
   }
 
-  /// Sends the token to the backend so it can target this device. Requires the
-  /// user to be logged in; call it right after a successful verification and on
-  /// app start for an already logged-in user.
+  /// Field names for the device-token endpoints.
+  ///
+  /// The Swagger documents RegisterDeviceTokenDTO and UnregisterDeviceTokenDTO
+  /// as empty objects (the NestJS DTOs have no @ApiProperty decorators), so
+  /// these were confirmed against the live API instead:
+  ///   POST   /device-tokens  {token, platform}  -> 201 Device token registered
+  ///   DELETE /device-tokens  {token}            -> 200 Device token unregistered
+  /// `platform` is an enum and only accepts 'ios' or 'android'.
+  static const String _tokenField = 'token';
+  static const String _platformField = 'platform';
+
+  /// Registers this device so the backend can target it. Requires a logged-in
+  /// user, so call it after a successful verification and on app start.
   Future<bool> registerTokenWithBackend() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     final String? accessToken = prefs.getString('accessToken');
@@ -214,17 +224,13 @@ class NotificationService {
     if (token == null) return false;
 
     try {
-      final String url = "${Env.BACKEND_URL}/user/device-token";
-      final response = await http.post(
+      final String url = "${Env.BACKEND_URL}/device-tokens";
+      final response = await apiClient.post(
         Uri.parse(url),
-        headers: {
-          'accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Authorization': "Bearer $accessToken",
-        },
+        headers: _headers(accessToken),
         body: jsonEncode({
-          "device_token": token,
-          "platform": Platform.isIOS ? "ios" : "android",
+          _tokenField: token,
+          _platformField: Platform.isIOS ? 'ios' : 'android',
         }),
       );
 
@@ -233,11 +239,59 @@ class NotificationService {
         return true;
       }
 
-      print('Device token registration failed: ${response.statusCode} ${response.body}');
+      _logDtoMismatch('register', response.statusCode, response.body);
       return false;
     } catch (error) {
       print('Device token registration error: $error');
       return false;
+    }
+  }
+
+  /// Tells the backend to stop sending to this device. Called on logout, so a
+  /// signed-out phone does not keep receiving another account's notifications.
+  Future<bool> unregisterTokenWithBackend() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? accessToken = prefs.getString('accessToken');
+    final String? token = _fcmToken ?? prefs.getString('fcmToken');
+    if (accessToken == null || token == null) return false;
+
+    try {
+      final String url = "${Env.BACKEND_URL}/device-tokens";
+      final response = await apiClient.delete(
+        Uri.parse(url),
+        headers: _headers(accessToken),
+        body: jsonEncode({_tokenField: token}),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print('Device token unregistered');
+        return true;
+      }
+
+      _logDtoMismatch('unregister', response.statusCode, response.body);
+      return false;
+    } catch (error) {
+      print('Device token unregister error: $error');
+      return false;
+    }
+  }
+
+  Map<String, String> _headers(String accessToken) => {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': "Bearer $accessToken",
+      };
+
+  /// A 400 here almost always means the DTO field names differ. The API's
+  /// validator names the fields it wanted, so surface that loudly rather than
+  /// letting it scroll past as a generic failure.
+  void _logDtoMismatch(String action, int statusCode, String body) {
+    if (statusCode == 400) {
+      print('!! device-token $action rejected (400). The API expects different '
+          'field names than "$_tokenField"/"$_platformField". It said: $body');
+      print('!! Fix _tokenField/_platformField in notification_service.dart.');
+    } else {
+      print('Device token $action failed: $statusCode $body');
     }
   }
 

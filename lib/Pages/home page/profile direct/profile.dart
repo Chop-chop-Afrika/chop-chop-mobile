@@ -8,6 +8,7 @@ import 'package:chop_chop_africa/backend/store_provider.dart';
 import 'package:chop_chop_africa/backend/support_provider.dart';
 import 'package:chop_chop_africa/utility/sizes.dart';
 import 'package:flutter/material.dart';
+import 'package:chop_chop_africa/Pages/home%20page/profile%20direct/wallet.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -34,8 +35,13 @@ class _ProfileState extends State<Profile> {
     final storeProvider = Provider.of<StoreProvider>(context, listen: false);
     final supportProvider = Provider.of<SupportProvider>(context, listen: false);
 
-    // Call logout API
-    final success = await authProvider.logout();
+    // Logout also unregisters this device's push token first, so it is two
+    // network calls — block the screen rather than leaving it looking idle.
+    final success = await UiUtils.runBlocking(
+      context,
+      'Signing you out',
+      () => authProvider.logout(),
+    );
 
     if (success) {
       // Clear SharedPreferences
@@ -141,6 +147,11 @@ class _ProfileState extends State<Profile> {
                       return Addresses();
                     }));
                   },'location (1).svg', 'Addresses', Icon(Icons.arrow_forward_ios,size: 22,color: IAColors.lightGrey,)),
+                  _accountInfo((){
+                    Navigator.push(context, MaterialPageRoute(builder: (context){
+                      return Wallet();
+                    }));
+                  },'location (1).svg', 'Wallet', Icon(Icons.arrow_forward_ios,size: 22,color: IAColors.lightGrey,)),
                   _accountInfo((){},'Frame 1171277849 (1).svg', 'Share and Earn', Icon(Icons.arrow_forward_ios,size: 22,color: IAColors.lightGrey,)),
                   3.gap,
                   UiUtils.subTitles('General', 17),

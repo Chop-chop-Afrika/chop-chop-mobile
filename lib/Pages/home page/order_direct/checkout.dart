@@ -1,4 +1,9 @@
+import 'package:chop_chop_africa/Pages/home%20page/order_direct/stripe_checkout.dart';
+import 'package:chop_chop_africa/Pages/home%20page/order_direct/track_order.dart';
 import 'package:chop_chop_africa/backend/address_provider.dart';
+import 'package:chop_chop_africa/backend/models/charges_model.dart';
+import 'package:chop_chop_africa/backend/models/make_payment_model.dart';
+import 'package:chop_chop_africa/backend/order_provider.dart';
 import 'package:chop_chop_africa/backend/store_provider.dart';
 import 'package:chop_chop_africa/utility/iacolors.dart';
 import 'package:chop_chop_africa/utility/sizes.dart';
@@ -23,13 +28,25 @@ class _CheckoutState extends State<Checkout> {
   final TextEditingController _noteController = TextEditingController();
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
-  String _selectedPaymentMethod = 'bank_transfer';
+  String _selectedPaymentMethod = 'card';
 
   @override
   void initState() {
     super.initState();
     final storeProvider = Provider.of<StoreProvider>(context, listen: false);
     storeProvider.fetchStoreInformation(widget.storeId);
+    final orderProvider = Provider.of<OrderProvider>(context, listen: false);
+    // Passing the subtotal makes the API return the exact fee breakdown for
+    // this basket, so the summary below never computes the fees itself.
+    orderProvider.getCharges(subtotal: widget.subTotal);
+    orderProvider.getWalletBalance();
+  }
+
+  /// Formats an amount in the currency the charges endpoint reports (GBP).
+  String _money(num? amount, {String? currency}) {
+    final formatter = NumberFormat("#,##0.00", "en_GB");
+    final String symbol = (currency ?? 'gbp').toLowerCase() == 'gbp' ? '£' : '';
+    return '$symbol${formatter.format(amount ?? 0)}';
   }
 
   @override
@@ -416,34 +433,58 @@ class _CheckoutState extends State<Checkout> {
   }
 
   Widget _buildPaymentSummary() {
-    final formatter = NumberFormat("#,##0.00", "en_US");
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            children: [
-              Text(
-                'Payment Summary',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+    return Consumer<OrderProvider>(
+      builder: (context, orderProvider, _) {
+        final ChargesData? charges = orderProvider.charges;
+        final ChargesBreakdown? breakdown = charges?.breakdown;
+        final String currency = charges?.currency ?? 'gbp';
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
               ),
-            ],
-          ),
-        ),
-        1.2.gap,
-        _buildSummaryRow('Sub-total (${widget.productNumber} items)', '\$${formatter.format(widget.subTotal)}'),
-        0.8.gap,
-        _buildSummaryRow('Delivery Fee', '\$2'),
-        0.8.gap,
-        _buildSummaryRow('Service Fees', '\$2'),
-        Divider(height: 20, color: IAColors.veryLightGrey),
-        _buildSummaryRow('Total', '\$${formatter.format(widget.subTotal)}', isTotal: true),
-      ],
+              child: Row(
+                children: [
+                  Text(
+                    'Payment Summary',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+            1.2.gap,
+            _buildSummaryRow(
+              'Sub-total (${widget.productNumber} items)',
+              _money(breakdown?.subtotal ?? widget.subTotal, currency: currency),
+            ),
+            0.8.gap,
+            _buildSummaryRow(
+              'Delivery Fee',
+              charges == null
+                  ? '--'
+                  : _money(breakdown?.deliveryFee ?? charges.deliveryFee,
+                      currency: currency),
+            ),
+            0.8.gap,
+            _buildSummaryRow(
+              'Service Fees',
+              charges == null ? '--' : _money(breakdown?.serviceFee, currency: currency),
+            ),
+            Divider(height: 20, color: IAColors.veryLightGrey),
+            _buildSummaryRow(
+              'Total',
+              charges == null
+                  ? '--'
+                  : _money(breakdown?.total ?? widget.subTotal, currency: currency),
+              isTotal: true,
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -489,16 +530,35 @@ class _CheckoutState extends State<Checkout> {
           ),
         ),
         1.2.gap,
-        _buildPaymentOption('bank_transfer', 'Bank Transfer', null),
+        _buildPaymentOption(
+          'card',
+          'Pay by Card',
+          subtitle: 'Visa, Mastercard via Stripe',
+        ),
         1.gap,
-        _buildPaymentOption('pay_online', 'Pay Online', null),
-        1.gap,
-        _buildPaymentOption('reward_balance', 'Reward Balance (\$20)', null),
+        Consumer<OrderProvider>(
+          builder: (context, orderProvider, _) {
+            final num? balance = orderProvider.walletBalance;
+            return _buildPaymentOption(
+              'wallet',
+              balance == null
+                  ? 'Wallet Balance'
+                  : 'Wallet Balance  ${_money(balance)}',
+              subtitle: 'Debited immediately',
+              isLast: true,
+            );
+          },
+        ),
       ],
     );
   }
 
-  Widget _buildPaymentOption(String value, String label, String? logo) {
+  Widget _buildPaymentOption(
+    String value,
+    String label, {
+    String? subtitle,
+    bool isLast = false,
+  }) {
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -512,18 +572,21 @@ class _CheckoutState extends State<Checkout> {
             child: Row(
               children: [
                 Icon(
-                  value == 'bank_transfer'
-                      ? Icons.account_balance
-                      : value == 'pay_online'
-                          ? Icons.language
-                          : Icons.card_giftcard,
+                  value == 'card' ? Icons.credit_card : Icons.account_balance_wallet,
                   size: 20,
                 ),
                 SizedBox(width: 10),
                 Expanded(
-                  child: Text(
-                    label,
-                    style: TextStyle(fontSize: 13),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(label, style: TextStyle(fontSize: 13)),
+                      if (subtitle != null)
+                        Text(
+                          subtitle,
+                          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                        ),
+                    ],
                   ),
                 ),
                 Radio<String>(
@@ -539,9 +602,98 @@ class _CheckoutState extends State<Checkout> {
               ],
             ),
           ),
-          if (value != 'reward_balance') Divider(color: IAColors.veryLightGrey, height: 1),
+          if (!isLast) Divider(color: IAColors.veryLightGrey, height: 1),
         ],
       ),
+    );
+  }
+
+  /// Pays for the cart, then sends the customer to the live tracking page.
+  ///
+  /// A wallet payment settles in the make-payment response. A card payment
+  /// comes back with a Stripe Checkout URL, and the webview closing proves
+  /// nothing — Stripe confirms to the backend by webhook — so the payment is
+  /// verified with payment-status before the order is treated as placed.
+  Future<void> _placeOrder() async {
+    final storeProvider = Provider.of<StoreProvider>(context, listen: false);
+    final addressProvider = Provider.of<AddressProvider>(context, listen: false);
+    final orderProvider = Provider.of<OrderProvider>(context, listen: false);
+
+    final String addressId = addressProvider.defaultAddress?.id ?? '';
+    if (addressId.isEmpty) {
+      UiUtils.showSnackBarFromTop(
+        context,
+        'Choose a delivery address before placing your order',
+      );
+      return;
+    }
+
+    final payment = await orderProvider.makePayment(
+      orderId: widget.orderId,
+      addressId: addressId,
+      paymentMethod: _selectedPaymentMethod,
+      deliveryTime: storeProvider.storeInformation?.data?.deliveryTime ?? '',
+      note: _noteController.text,
+      scheduledDate: _scheduledDate(),
+    );
+    if (payment == null || !mounted) return;
+
+    final String orderId = payment.orderId ?? widget.orderId;
+
+    if (payment.needsCardCheckout) {
+      final bool returned = await Navigator.push<bool>(
+            context,
+            MaterialPageRoute(
+              builder: (_) => StripeCheckout(checkoutUrl: payment.checkoutUrl!),
+            ),
+          ) ??
+          false;
+      if (!mounted) return;
+      if (!returned) {
+        UiUtils.showSnackBarFromTop(context, 'Payment was not completed');
+        return;
+      }
+
+      // Stripe confirms to the backend by webhook, so there is a short wait
+      // after the webview closes. Block the screen meanwhile — otherwise it
+      // looks idle and the customer may tap Place Order a second time.
+      final status = await UiUtils.runBlocking(
+        context,
+        'Confirming your payment',
+        () => orderProvider.waitForPayment(orderId),
+        subtitle: "This takes a few seconds. Please don't close the app.",
+      );
+      if (!mounted) return;
+      if (status?.isPaid != true) {
+        UiUtils.showSnackBarFromTop(
+          context,
+          'We have not received your payment yet. Check the order in a moment.',
+        );
+        return;
+      }
+    }
+
+    _goToTracking(orderId);
+  }
+
+  /// Combines the date and time pickers into the ISO-8601 `scheduledDate` the
+  /// API expects, or null when the customer did not schedule the order.
+  String? _scheduledDate() {
+    if (_selectedDate == null) return null;
+    final time = _selectedTime;
+    return DateTime(
+      _selectedDate!.year,
+      _selectedDate!.month,
+      _selectedDate!.day,
+      time?.hour ?? 0,
+      time?.minute ?? 0,
+    ).toUtc().toIso8601String();
+  }
+
+  void _goToTracking(String orderId) {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => TrackOrder(orderId: orderId)),
+      (route) => route.isFirst,
     );
   }
 
@@ -551,39 +703,17 @@ class _CheckoutState extends State<Checkout> {
         SizedBox(
           height: 6.5.pH,
           width: double.infinity,
-          child: ElevatedButton(
-            onPressed: () async {
-              final storeProvider = Provider.of<StoreProvider>(context, listen: false);
-              final addressProvider = Provider.of<AddressProvider>(context, listen: false);
-
-              // Get delivery time from store information
-              final deliveryTime = storeProvider.storeInformation?.data?.deliveryTime ?? '';
-
-              // Get default address ID
-              final addressId = addressProvider.defaultAddress?.id ?? '';
-
-
-              // Map payment method
-              String apiPaymentMethod = '';
-              if (_selectedPaymentMethod == 'bank_transfer') {
-                apiPaymentMethod = 'card';
-              } else if (_selectedPaymentMethod == 'pay_online') {
-                apiPaymentMethod = 'online';
-              } else if (_selectedPaymentMethod == 'reward_balance') {
-                apiPaymentMethod = 'reward_balance';
-              }
-
-              // Call create order API
-              await storeProvider.createOrder(
-                widget.orderId,
-                addressId,
-                deliveryTime,
-                _noteController.text,
-                apiPaymentMethod,
-                context,
-              );
-            },
-            child: Text('Place Order'),
+          child: Consumer<OrderProvider>(
+            builder: (context, orderProvider, _) => ElevatedButton(
+              onPressed: orderProvider.paying ? null : _placeOrder,
+              child: orderProvider.paying
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Place Order'),
+            ),
           ),
         ),
         1.gap,

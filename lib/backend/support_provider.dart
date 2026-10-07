@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
+import 'api_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path/path.dart' as path;
 import '../env/env.dart';
@@ -20,6 +21,14 @@ class SupportProvider with ChangeNotifier{
   GetTicketDetailsModel? ticketDetails;
   GetUserTicketsModel? allUserTickets;
   List<Record> userTicketsList = [];
+
+  /// Closed tickets, from /support/tickets/history. Kept apart from
+  /// [userTicketsList], which holds the active ones.
+  List<Record> ticketHistoryList = [];
+  bool isLoadingHistory = false;
+  bool historyLoadedOnce = false;
+  bool hasNextHistoryPage = false;
+  int currentHistoryPage = 1;
 
   // Pagination properties
   bool isLoadingMoreTickets = false;
@@ -74,10 +83,9 @@ class SupportProvider with ChangeNotifier{
 
       print('Sending support ticket request...');
 
-      final streamedResponse = await request.send();
+      final streamedResponse = await apiClient.send(request);
       final response = await http.Response.fromStream(streamedResponse);
 
-      print('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);
@@ -118,7 +126,7 @@ class SupportProvider with ChangeNotifier{
     dynamic jsonResponse;
     try {
       String url = "${Env.BACKEND_URL}/support/info";
-      final response = await http.get(
+      final response = await apiClient.get(
         Uri.parse(url),
         headers: {
           'accept': '*/*',
@@ -126,7 +134,6 @@ class SupportProvider with ChangeNotifier{
         },
       );
 
-      print('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);
@@ -153,7 +160,7 @@ class SupportProvider with ChangeNotifier{
     dynamic jsonResponse;
     try {
       String url = "${Env.BACKEND_URL}/support/tickets/$ticketId";
-      final response = await http.get(
+      final response = await apiClient.get(
         Uri.parse(url),
         headers: {
           'accept': '*/*',
@@ -161,7 +168,6 @@ class SupportProvider with ChangeNotifier{
         },
       );
 
-      print('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);
@@ -216,10 +222,9 @@ class SupportProvider with ChangeNotifier{
 
       print('Sending message...');
 
-      final streamedResponse = await request.send();
+      final streamedResponse = await apiClient.send(request);
       final response = await http.Response.fromStream(streamedResponse);
 
-      print('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         // Clear the support image after successful submission
@@ -235,6 +240,110 @@ class SupportProvider with ChangeNotifier{
     }
   }
 
+  /// Past (closed) tickets. The record shape is lighter than the active list —
+  /// no messages — so it reuses the same model but only the common fields are
+  /// populated.
+  Future<void> fetchTicketHistory({bool loadMore = false}) async {
+    if (isLoadingHistory) return;
+    if (loadMore && !hasNextHistoryPage) return;
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    if (!loadMore) currentHistoryPage = 1;
+
+    isLoadingHistory = true;
+    notifyListeners();
+    try {
+      String url =
+          "${Env.BACKEND_URL}/support/tickets/history?page=$currentHistoryPage&pageSize=10";
+      final response = await apiClient.get(
+        Uri.parse(url),
+        headers: {
+          'accept': '*/*',
+          'Authorization': "Bearer ${prefs.getString('accessToken')}",
+        },
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final parsed = GetUserTicketsModel.fromJson(jsonDecode(response.body));
+        final fetched = parsed.data?.record ?? [];
+        if (loadMore) {
+          ticketHistoryList.addAll(fetched);
+        } else {
+          ticketHistoryList = fetched;
+        }
+        hasNextHistoryPage = parsed.data?.hasNextPage ?? false;
+        if (hasNextHistoryPage) currentHistoryPage++;
+      } else if (response.statusCode != 401) {
+        print('Ticket history failed: ${response.statusCode} ${response.body}');
+      }
+    } catch (error) {
+      print('Ticket history error: $error');
+    } finally {
+      historyLoadedOnce = true;
+      isLoadingHistory = false;
+      notifyListeners();
+    }
+  }
+
+  /// Closes a ticket the customer no longer needs help with.
+  Future<bool> closeTicket(String ticketId) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    try {
+      String url = "${Env.BACKEND_URL}/support/tickets/$ticketId/close";
+      final response = await apiClient.post(
+        Uri.parse(url),
+        headers: {
+          'accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': "Bearer ${prefs.getString('accessToken')}",
+        },
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // /support/tickets includes closed tickets, so refetch both lists
+        // rather than guessing what moved where.
+        await fetchUserTickets();
+        await fetchTicketHistory();
+        return true;
+      }
+      print('Close ticket failed: ${response.statusCode} ${response.body}');
+      return false;
+    } catch (error) {
+      print('Close ticket error: $error');
+      return false;
+    }
+  }
+
+  /// Sets a ticket's status. [status] must be one of the API's enum values:
+  /// open, in_progress, resolved, closed.
+  Future<bool> updateTicketStatus(String ticketId, String status) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    try {
+      String url = "${Env.BACKEND_URL}/support/tickets/$ticketId/status";
+      final response = await apiClient.patch(
+        Uri.parse(url),
+        headers: {
+          'accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': "Bearer ${prefs.getString('accessToken')}",
+        },
+        body: jsonEncode({"status": status}),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        await fetchUserTickets();
+        return true;
+      }
+      print('Update ticket status failed: ${response.statusCode} ${response.body}');
+      return false;
+    } catch (error) {
+      print('Update ticket status error: $error');
+      return false;
+    }
+  }
+
+  /// The statuses a customer can set themselves.
+  static const List<String> settableStatuses = ['open', 'resolved', 'closed'];
+
   Future<void> fetchUserTickets({bool loadMore = false}) async {
     if (loadMore && (isLoadingMoreTickets || !hasNextTicketsPage)) return;
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -243,10 +352,15 @@ class SupportProvider with ChangeNotifier{
       if (loadMore) {
         isLoadingMoreTickets = true;
         notifyListeners();
+      } else {
+        // A fresh load starts from page 1. Without this the list kept the old
+        // rows and appended page 1 on top of them, so every revisit to the
+        // tickets screen duplicated every ticket.
+        currentTicketsPage = 1;
       }
 
       String url = "${Env.BACKEND_URL}/support/tickets?page=$currentTicketsPage&pageSize=10";
-      final response = await http.get(
+      final response = await apiClient.get(
         Uri.parse(url),
         headers: {
           'accept': '*/*',
@@ -254,7 +368,6 @@ class SupportProvider with ChangeNotifier{
         },
       );
 
-      print('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);
@@ -262,7 +375,12 @@ class SupportProvider with ChangeNotifier{
         allUserTickets = tickets;
         hasNextTicketsPage = tickets.data?.hasNextPage ?? false;
         currentTicketsPage = tickets.data?.nextPage ?? currentTicketsPage;
-        userTicketsList.addAll(tickets.data?.record ?? []);
+        final fetched = tickets.data?.record ?? [];
+        if (loadMore) {
+          userTicketsList.addAll(fetched);
+        } else {
+          userTicketsList = fetched;
+        }
         notifyListeners();
       } else if (response.statusCode == 400) {
         jsonResponse = jsonDecode(response.body);

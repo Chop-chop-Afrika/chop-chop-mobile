@@ -8,6 +8,9 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:phone_numbers_parser/phone_numbers_parser.dart';
 import 'package:phone_text_field/phone_text_field.dart' hide PhoneNumber;
 import 'package:flutter_typeahead/flutter_typeahead.dart';
+import 'package:chop_chop_africa/Pages/home%20page/home%20direct/package_payment_flow.dart';
+import 'package:chop_chop_africa/Pages/home%20page/home%20direct/track_package.dart';
+import 'package:chop_chop_africa/backend/package_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:loading_indicator/loading_indicator.dart';
 import '../../../utility/iacolors.dart';
@@ -42,7 +45,7 @@ class _SendPackageState extends State<SendPackage> {
     },
     {
       'name': 'Clothes',
-      'write': 'clothes',
+      'write': 'cloth',
     },
     {
       'name': 'Gadget',
@@ -77,6 +80,82 @@ class _SendPackageState extends State<SendPackage> {
     _pickUpLng = mainAddress.defaultAddress!.longitude;
     _pickUpLat = mainAddress.defaultAddress!.latitude;
   }
+  /// Prices the delivery before the customer commits to it. Both addresses
+  /// must have been picked from the suggestions, since the quote is calculated
+  /// from coordinates rather than the typed text.
+  Future<void> _fetchQuote() async {
+    if (_pickUpLat == null ||
+        _pickUpLng == null ||
+        _dropOffLat == null ||
+        _dropOffLng == null) {
+      UiUtils.showSnackBarFromTop(
+          context, 'Pick both addresses from the suggestions first');
+      return;
+    }
+    await Provider.of<PackageProvider>(context, listen: false).getQuote(
+      pickupLatitude: _pickUpLat!,
+      pickupLongitude: _pickUpLng!,
+      dropOffLatitude: _dropOffLat!,
+      dropOffLongitude: _dropOffLng!,
+    );
+  }
+
+  /// Books and pays for the delivery. There is no separate create endpoint —
+  /// make-payment does both — so nothing exists server-side until this runs.
+  Future<void> _goToPayment() async {
+    if (!_globalKey.currentState!.validate()) return;
+    if (_pickUpAddress.text.isEmpty || _dropOffAddress.text.isEmpty) {
+      UiUtils.showSnackBarFromTop(context, 'Please select an address');
+      return;
+    }
+    if (_pickUpLat == null || _dropOffLat == null) {
+      UiUtils.showSnackBarFromTop(
+          context, 'Pick both addresses from the suggestions first');
+      return;
+    }
+    if (_selectedCategoryIndex == -1) {
+      UiUtils.showSnackBarFromTop(
+          context, 'Please select what is in the package');
+      return;
+    }
+
+    final packages = Provider.of<PackageProvider>(context, listen: false);
+    if (packages.quote == null) {
+      await _fetchQuote();
+      if (!mounted || packages.quote == null) return;
+    }
+
+    final String? packageId = await runPackagePayment(
+      context,
+      PackageBooking(
+        pickupAddress: _pickUpAddress.text,
+        dropOffAddress: _dropOffAddress.text,
+        senderName: _fullName.text,
+        senderPhone: _phoneNumber ?? _phoneController.text,
+        senderEmail: _emailController.text,
+        receiverName: _receiverFullName.text,
+        receiverPhone: _receiverPhoneController.text,
+        receiverEmail: _receiverEmailController.text,
+        type: _packageCategory[_selectedCategoryIndex]['write']!,
+        mode: 'send',
+        pickupLatitude: _pickUpLat!,
+        pickupLongitude: _pickUpLng!,
+        dropOffLatitude: _dropOffLat!,
+        dropOffLongitude: _dropOffLng!,
+      ),
+    );
+    if (!mounted || packageId == null) return;
+
+    // Straight to tracking rather than back to this form. The package may
+    // still be settling, which that screen reports rather than hiding.
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (_) => TrackPackage(packageId: packageId, justBooked: true),
+      ),
+      (route) => route.isFirst,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final profile = Provider.of<ProfileProvider>(context, listen: false);
@@ -658,31 +737,40 @@ class _SendPackageState extends State<SendPackage> {
                       ),
                     ),
                     4.gap,
-                    SizedBox(
-                      height: 6.5.pH,
-                      width: 100.pW,
-                      child: ElevatedButton(
-                        style: ButtonStyle(
-                          backgroundColor: WidgetStatePropertyAll(Colors.grey.shade200),
-                          elevation: WidgetStatePropertyAll(0)
-                        ),
-                        onPressed: () {
-
-                        },
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Delivery Fee',
-                              style: TextStyle(
-                                  color: Colors.black
+                    Consumer<PackageProvider>(
+                      builder: (context, packages, _) => SizedBox(
+                        height: 6.5.pH,
+                        width: 100.pW,
+                        child: ElevatedButton(
+                          style: ButtonStyle(
+                            backgroundColor: WidgetStatePropertyAll(Colors.grey.shade200),
+                            elevation: WidgetStatePropertyAll(0),
+                          ),
+                          onPressed: packages.quoting ? null : _fetchQuote,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                packages.quote == null
+                                    ? 'Get delivery price'
+                                    : 'Delivery Fee',
+                                style: TextStyle(color: Colors.black),
                               ),
-                            ),
-                            Text('\$120',
-                              style: TextStyle(
-                                  color: Colors.black
-                              ),
-                            ),
-                          ],
+                              packages.quoting
+                                  ? SizedBox(
+                                      height: 16,
+                                      width: 16,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2, color: Colors.black54),
+                                    )
+                                  : Text(
+                                      packages.quote == null
+                                          ? 'Tap to calculate'
+                                          : '£${packages.quote!.total?.toStringAsFixed(2) ?? ''}',
+                                      style: TextStyle(color: Colors.black),
+                                    ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -694,41 +782,7 @@ class _SendPackageState extends State<SendPackage> {
                         style: ButtonStyle(
                             elevation: WidgetStatePropertyAll(0)
                         ),
-                        onPressed: () async{
-                          print(_fullName.text);
-                          if(_globalKey.currentState!.validate()){
-                            if(_pickUpAddress.text.isNotEmpty|| _dropOffAddress.text.isNotEmpty){
-                              if(_selectedCategoryIndex != -1){
-                                setState(() {
-                                  _isLoading = true;
-                                });
-                                await store.packageAction(
-                                    _pickUpAddress.text,
-                                    _dropOffAddress.text,
-                                    _fullName.text,
-                                    _phoneNumber!,
-                                    _emailController.text,
-                                    _receiverFullName.text,
-                                    _receiverPhoneController.text,
-                                    _receiverEmailController.text,
-                                    _packageCategory[_selectedCategoryIndex]['write']!,
-                                    'send',
-                                    _pickUpLng!,
-                                    _pickUpLat,
-                                    _dropOffLng,
-                                    _dropOffLat);
-                                setState(() {
-                                  _isLoading = false;
-                                });
-                              }else{
-                                UiUtils.showSnackBarFromTop(context, 'Please select what is in the package');
-                              }
-                             
-                            }else{
-                              UiUtils.showSnackBarFromTop(context, 'Please select an address');
-                            }
-                          }
-                         },
+                        onPressed: _isLoading ? null : _goToPayment,
                         child: _isLoading?
                         SizedBox(
                             height: 20,
@@ -746,9 +800,12 @@ class _SendPackageState extends State<SendPackage> {
                                   color: Colors.white
                               ),
                             ),
-                            Text('\$120',
-                              style: TextStyle(
-                                  color: Colors.white
+                            Consumer<PackageProvider>(
+                              builder: (context, packages, _) => Text(
+                                packages.quote == null
+                                    ? ''
+                                    : '£${packages.quote!.total?.toStringAsFixed(2) ?? ''}',
+                                style: TextStyle(color: Colors.white),
                               ),
                             ),
                           ],
