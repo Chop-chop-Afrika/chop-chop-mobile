@@ -353,6 +353,33 @@ class OrderProvider with ChangeNotifier {
     }
   }
 
+  /// Raises a dispute on a completed order. The API only allows this once the
+  /// order is completed, and refuses a second one while another is open, so
+  /// the server message is returned for the caller to show either way.
+  Future<String?> disputeOrder(String orderId, String reason) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    try {
+      final String url = "${Env.BACKEND_URL}/user/orders/$orderId/dispute";
+      final response = await apiClient.post(
+        Uri.parse(url),
+        headers: _headers(prefs),
+        body: jsonEncode({"reason": reason}),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return jsonDecode(response.body)['message'] ??
+            'Dispute raised — our support team will review it';
+      }
+      if (response.statusCode == 401) return null;
+      _showError(jsonDecode(response.body));
+      return null;
+    } catch (error) {
+      print('Dispute order error: $error');
+      _showNetworkError(error.toString());
+      return null;
+    }
+  }
+
   /// Permanently deletes the account. Returns the server message on success.
   Future<String?> deleteAccount() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();

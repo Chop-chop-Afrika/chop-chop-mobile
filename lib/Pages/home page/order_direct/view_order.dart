@@ -1,3 +1,4 @@
+import 'package:chop_chop_africa/Pages/home%20page/order_direct/raise_dispute.dart';
 import 'package:chop_chop_africa/utility/sizes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
@@ -106,12 +107,33 @@ class _ViewOrderState extends State<ViewOrder> {
                     ],
                     2.gap,
                     _totals(order, itemCount),
+                    2.gap,
+                    _disputeLink(order),
                     5.gap,
                   ],
                 ),
               ),
             );
           },
+        ),
+      ),
+    );
+  }
+
+  /// Disputes are only accepted on completed orders (status 6), so this is
+  /// hidden otherwise rather than offered and rejected by the API.
+  Widget _disputeLink(OrderDetailData order) {
+    if (order.status != 6) return const SizedBox.shrink();
+    return Center(
+      child: TextButton.icon(
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => RaiseDispute(order: order)),
+        ),
+        icon: Icon(Icons.flag_outlined, size: 17, color: Colors.grey.shade700),
+        label: Text(
+          'Report a problem with this order',
+          style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
         ),
       ),
     );
