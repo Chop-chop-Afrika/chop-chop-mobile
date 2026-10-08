@@ -9,6 +9,7 @@ import 'package:chop_chop_africa/backend/support_provider.dart';
 import 'package:chop_chop_africa/utility/sizes.dart';
 import 'package:flutter/material.dart';
 import 'package:chop_chop_africa/Pages/home%20page/profile%20direct/wallet.dart';
+import 'package:chop_chop_africa/Pages/home%20page/profile%20direct/invite_friend.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -152,7 +153,11 @@ class _ProfileState extends State<Profile> {
                       return Wallet();
                     }));
                   },'location (1).svg', 'Wallet', Icon(Icons.arrow_forward_ios,size: 22,color: IAColors.lightGrey,)),
-                  _accountInfo((){},'Frame 1171277849 (1).svg', 'Share and Earn', Icon(Icons.arrow_forward_ios,size: 22,color: IAColors.lightGrey,)),
+                  _accountInfo((){
+                    Navigator.push(context, MaterialPageRoute(builder: (context){
+                      return InviteFriend();
+                    }));
+                  },'Frame 1171277849 (1).svg', 'Share and Earn', Icon(Icons.arrow_forward_ios,size: 22,color: IAColors.lightGrey,)),
                   3.gap,
                   UiUtils.subTitles('General', 17),
                   2.gap,
