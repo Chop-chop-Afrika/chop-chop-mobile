@@ -30,7 +30,9 @@ class ProfileData {
   String? phone;
   String? dob;
   dynamic avatar;
-  int? wallet;
+  /// Currency, so it can arrive with decimals — an int? here made the
+  /// whole profile fail to parse whenever the balance was not whole.
+  num? wallet;
   String? referralCode;
   String? createdAt;
 

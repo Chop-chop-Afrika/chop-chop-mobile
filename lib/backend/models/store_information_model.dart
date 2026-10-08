@@ -83,7 +83,7 @@ class Data {
     status = json['status'];
     user = json['User'] != null ? new User.fromJson(json['User']) : null;
     averageRating = (json['averageRating'] as num?)?.toDouble();
-    totalRatings = json['totalRatings'];
+    totalRatings = (json['totalRatings'] as num?)?.toInt();
   }
 
   Map<String, dynamic> toJson() {

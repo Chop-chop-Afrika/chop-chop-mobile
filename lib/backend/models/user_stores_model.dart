@@ -42,7 +42,7 @@ class Data {
 
   Data.fromJson(Map<String, dynamic> json) {
     currentPage = json['currentPage'];
-    totalPages = json['totalPages'];
+    totalPages = (json['totalPages'] as num?)?.toInt();
     hasNextPage = json['hasNextPage'];
     hasPrevPage = json['hasPrevPage'];
     nextPage = json['nextPage'];

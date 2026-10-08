@@ -220,7 +220,7 @@ class PackageListModel {
             .toList();
       }
       currentPage = data['currentPage'];
-      totalPages = data['totalPages'];
+      totalPages = (data['totalPages'] as num?)?.toInt();
       hasNextPage = data['hasNextPage'] ?? false;
     }
   }

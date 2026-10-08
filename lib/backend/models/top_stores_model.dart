@@ -75,7 +75,7 @@ class TopStoresData {
     createdAt = json['createdAt'];
     updatedAt = json['updatedAt'];
     averageRating = (json['averageRating'] as num?)?.toDouble();
-    totalRatings = json['totalRatings'];
+    totalRatings = (json['totalRatings'] as num?)?.toInt();
     distance = (json['distance'] as num?)?.toDouble();
   }
 
