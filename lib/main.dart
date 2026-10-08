@@ -11,6 +11,7 @@ import 'package:chop_chop_africa/backend/api_client.dart';
 import 'package:chop_chop_africa/backend/notification_service.dart';
 import 'package:chop_chop_africa/backend/order_provider.dart';
 import 'package:chop_chop_africa/backend/package_provider.dart';
+import 'package:chop_chop_africa/backend/referral_provider.dart';
 import 'package:chop_chop_africa/backend/socket_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -47,7 +48,8 @@ void main() async{
         provider.ChangeNotifierProvider<StoreProvider>(create:(_) => StoreProvider()),
         provider.ChangeNotifierProvider<SupportProvider>(create:(_) => SupportProvider()),
         provider.ChangeNotifierProvider<OrderProvider>(create:(_) => OrderProvider()),
-        provider.ChangeNotifierProvider<PackageProvider>(create:(_) => PackageProvider())
+        provider.ChangeNotifierProvider<PackageProvider>(create:(_) => PackageProvider()),
+        provider.ChangeNotifierProvider<ReferralProvider>(create:(_) => ReferralProvider())
       ],
       child: MyApp(prefs: prefs,))
   );
