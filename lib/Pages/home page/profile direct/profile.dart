@@ -27,6 +27,29 @@ class Profile extends StatefulWidget {
 }
 
 class _ProfileState extends State<Profile> {
+  @override
+  void initState() {
+    super.initState();
+    // main_home also fetches this, but that call can still be in flight or
+    // have failed, which is what left the name rendering as "null null".
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final profile = Provider.of<ProfileProvider>(context, listen: false);
+      if (profile.getAllProfileInfo?.data == null) profile.getProfile();
+    });
+  }
+
+  /// Interpolating the two name fields directly printed the literal
+  /// "null null" before the profile loaded, so build it from whichever
+  /// parts are actually present.
+  String _displayName(ProfileProvider profile) {
+    final data = profile.getAllProfileInfo?.data;
+    final name = [data?.firstName, data?.lastName]
+        .where((part) => part != null && part.trim().isNotEmpty)
+        .join(' ')
+        .trim();
+    return name.isEmpty ? '' : name;
+  }
+
   String placeHolderLogo = 'https://freesvg.org/img/chef-restaurant-logo-publicdomainvectors.png';
 
   Future<void> _handleLogout() async {
@@ -104,7 +127,7 @@ class _ProfileState extends State<Profile> {
                           ),
                         ),
                         0.5.gap,
-                        Text('${profile.getAllProfileInfo?.data?.firstName} ${profile.getAllProfileInfo?.data?.lastName}',
+                        Text(_displayName(profile),
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w700

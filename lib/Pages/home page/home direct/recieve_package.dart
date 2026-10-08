@@ -74,11 +74,22 @@ class _ReceivePackageState extends State<ReceivePackage> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    var mainAddress = Provider.of<AddressProvider>(context, listen: false);
-    _drpOffAddress.text = mainAddress.defaultAddress!.address!;
+    final mainAddress = Provider.of<AddressProvider>(context, listen: false);
+    // A user with no saved default address used to crash this screen on open:
+    // defaultAddress! threw inside initState. Prefill only when there is one.
+    final defaultAddress = mainAddress.defaultAddress;
+    if (defaultAddress != null) {
+      _drpOffAddress.text = defaultAddress.address ?? '';
+      _drpOffLng = defaultAddress.longitude;
+      _drpOffLat = defaultAddress.latitude;
+    }
     _drpOffAddress.addListener(() => setState(() {}));
-    _drpOffLng = mainAddress.defaultAddress!.longitude;
-    _drpOffLat = mainAddress.defaultAddress!.latitude;
+
+    // "Use my info" needs the profile; fetch it if no other screen has.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final profile = Provider.of<ProfileProvider>(context, listen: false);
+      if (profile.getAllProfileInfo?.data == null) profile.getProfile();
+    });
 
   }
   /// Prices the delivery first. The quote is calculated from coordinates, so
@@ -158,9 +169,11 @@ class _ReceivePackageState extends State<ReceivePackage> {
 
   @override
   Widget build(BuildContext context) {
-    final profile = Provider.of<ProfileProvider>(context, listen: false);
-    final profileInfo = profile.getAllProfileInfo!.data;
-    final store = Provider.of<StoreProvider>(context, listen: false);
+    final profile = Provider.of<ProfileProvider>(context);
+    // Nullable on purpose: this screen is reachable before the profile
+    // request has finished (or after one that failed), and the old `!`
+    // threw during build, taking the whole page down.
+    final profileInfo = profile.getAllProfileInfo?.data;
     final theme = Theme.of(context);
     return Form(
       key: _globalKey,
@@ -542,12 +555,21 @@ class _ReceivePackageState extends State<ReceivePackage> {
                               setState(() {
                                 _useMyInfo = value!;
                                 if(_useMyInfo){
-                                  _receiverFullName.text = '${profileInfo!.firstName} ${profileInfo.lastName}';
-                                  _receiverPhoneController.text = PhoneNumber.parse(profileInfo.phone!).nsn;
-                                  _phoneNumber = profileInfo.phone;
-                                  _initialCountryCode = PhoneNumber.parse(profileInfo.phone!).isoCode.name;
-                                  _receiverEmailController.text = profileInfo.email!;
-                                }else{
+                                // Each of these fields can be absent, so fill
+                                // only what the profile actually has instead
+                                // of asserting and crashing.
+                                _receiverFullName.text = [profileInfo?.firstName, profileInfo?.lastName]
+                                    .where((part) => part != null && part.trim().isNotEmpty)
+                                    .join(' ');
+                                final String? myPhone = profileInfo?.phone;
+                                if (myPhone != null && myPhone.isNotEmpty) {
+                                  final parsed = PhoneNumber.parse(myPhone);
+                                  _receiverPhoneController.text = parsed.nsn;
+                                  _phoneNumber = myPhone;
+                                  _initialCountryCode = parsed.isoCode.name;
+                                }
+                                _receiverEmailController.text = profileInfo?.email ?? '';
+                              }else{
                                   _receiverFullName.clear();
                                   _receiverPhoneController.clear();
                                   _initialCountryCode = "NG";

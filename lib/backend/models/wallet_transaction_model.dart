@@ -30,7 +30,7 @@ class WalletTransactionData {
           .toList();
     }
     currentPage = json['currentPage'];
-    totalPages = json['totalPages'];
+    totalPages = (json['totalPages'] as num?)?.toInt();
     hasNextPage = json['hasNextPage'] ?? false;
   }
 }

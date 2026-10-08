@@ -139,7 +139,7 @@ class _SearchProductsState extends State<SearchProducts> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text('Proceed to order ${store.getCartItems?.data?.itemCount} item'),
+                              Text('Proceed to order ${store.getCartItems?.data?.itemCount ?? 0} item'),
                               Text('\$${formatter.format(store.getCartItems?.data?.grandTotal)}')
                             ],
                           )
