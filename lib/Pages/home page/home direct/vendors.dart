@@ -2,6 +2,7 @@ import 'package:chop_chop_africa/Pages/home%20page/home%20direct/vendor_detail.d
 import 'package:chop_chop_africa/backend/address_provider.dart';
 import 'package:chop_chop_africa/backend/store_provider.dart';
 import 'package:chop_chop_africa/utility/sizes.dart';
+import 'package:chop_chop_africa/custom%20widgets/async_content.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
@@ -72,9 +73,9 @@ class _VendorsState extends State<Vendors> {
   Widget build(BuildContext context) {
     return Consumer<StoreProvider>(
       builder: (context,store,child) {
-        if (store.allStoresList.isEmpty) {
-          return const Center(child: CircularProgressIndicator());
-        }
+        // This used to spin forever when there genuinely were no vendors,
+        // and it replaced the whole Scaffold, so there was no way back.
+        final bool firstLoad = store.loadingStores && store.allStoresList.isEmpty;
         return Scaffold(
           appBar: AppBar(
             centerTitle: true,
@@ -98,7 +99,16 @@ class _VendorsState extends State<Vendors> {
               ),
             ),
           ),
-          body: Padding(
+          body: AsyncContent(
+            loading: firstLoad,
+            isEmpty: store.allStoresList.isEmpty,
+            emptyTitle: 'No vendors nearby',
+            emptyMessage:
+                'We could not find any vendors around you right now. Pull down '
+                'to try again.',
+            emptyIcon: Icons.storefront_outlined,
+            loadingPlaceholder: const SkeletonList(count: 6, itemHeight: 90),
+            builder: (context) => Padding(
             padding:  EdgeInsets.symmetric(horizontal: 20.0),
             child: ListView.builder(
                 controller: _scrollController,
@@ -188,6 +198,7 @@ class _VendorsState extends State<Vendors> {
                 );
                 }
             ),
+          ),
           ),
         );
       }

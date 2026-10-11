@@ -2,7 +2,6 @@ import 'package:chop_chop_africa/Pages/home%20page/order_direct/stripe_checkout.
 import 'package:chop_chop_africa/Pages/home%20page/order_direct/track_order.dart';
 import 'package:chop_chop_africa/backend/address_provider.dart';
 import 'package:chop_chop_africa/backend/models/charges_model.dart';
-import 'package:chop_chop_africa/backend/models/make_payment_model.dart';
 import 'package:chop_chop_africa/backend/order_provider.dart';
 import 'package:chop_chop_africa/backend/store_provider.dart';
 import 'package:chop_chop_africa/utility/iacolors.dart';
@@ -672,6 +671,13 @@ class _CheckoutState extends State<Checkout> {
         return;
       }
     }
+
+    // The paid cart is no longer a cart. Nothing refetched it after payment,
+    // so My Cart kept showing the order — and worse, checkout reuses the
+    // orderId it was handed, so a stale cart meant the next "new" order paid
+    // against the previous order's id.
+    await storeProvider.fetchAllCartItems();
+    if (!mounted) return;
 
     _goToTracking(orderId);
   }

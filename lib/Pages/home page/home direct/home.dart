@@ -9,6 +9,7 @@ import 'package:chop_chop_africa/backend/store_provider.dart';
 import 'package:chop_chop_africa/utility/iacolors.dart';
 import 'package:chop_chop_africa/utility/sizes.dart';
 import 'package:chop_chop_africa/utility/uiutils.dart';
+import 'package:chop_chop_africa/custom%20widgets/async_content.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
@@ -166,7 +167,8 @@ List<String> _carouselImages = [
                   2.gap,
                   UiUtils.subTitles('Top Vendors', 17),
                   0.5.gap,
-                  _horizontalListView(stores.getTopVendors),
+                  _horizontalListView(stores.getTopVendors,
+                      loading: stores.loadingTopVendors),
               CarouselSlider.builder(
                 options: CarouselOptions(
                     viewportFraction: 1,
@@ -219,7 +221,8 @@ List<String> _carouselImages = [
                  2.gap,
                   UiUtils.subTitles('Top Stores', 17),
                   0.5.gap,
-                  _horizontalListView(stores.getTopStores),
+                  _horizontalListView(stores.getTopStores,
+                      loading: stores.loadingTopStores),
                   2.gap,
                   UiUtils.subTitles('Recommended', 17),
                   1.gap,
@@ -291,7 +294,27 @@ List<String> _carouselImages = [
     );
   }
 
-  Widget _horizontalListView(List allItems){
+  /// [loading] draws placeholder tiles instead of an empty strip, so the home
+  /// screen does not look broken while the first fetch is in flight.
+  Widget _horizontalListView(List allItems, {bool loading = false}){
+    if (loading && allItems.isEmpty) {
+      return SizedBox(
+        height: 12.pH,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          itemCount: 4,
+          itemBuilder: (context, _) => Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: SkeletonBox(
+              height: 12.pH,
+              width: 26.pW,
+              margin: EdgeInsets.zero,
+              radius: 12,
+            ),
+          ),
+        ),
+      );
+    }
     return SizedBox(
       height: 12.pH,
       child: ListView.builder(

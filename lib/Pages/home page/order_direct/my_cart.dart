@@ -5,7 +5,6 @@ import 'package:chop_chop_africa/utility/uiutils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
-import '../../../utility/iacolors.dart';
 import 'package:intl/intl.dart';
 
 
@@ -25,6 +24,16 @@ class _MyCartState extends State<MyCart> {
     return name;
   }
   String placeHolderLogo = 'https://freesvg.org/img/chef-restaurant-logo-publicdomainvectors.png';
+  @override
+  void initState() {
+    super.initState();
+    // The cart changes behind this screen's back — paying for one empties it.
+    // Refetch on open so it never shows an order that has already been paid.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<StoreProvider>(context, listen: false).fetchAllCartItems();
+    });
+  }
+
   /// Emptying the cart loses everything the customer picked, so confirm first.
   Future<void> _confirmClearCart(BuildContext context) async {
     final bool? confirmed = await showDialog<bool>(
