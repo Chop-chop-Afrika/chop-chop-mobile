@@ -20,14 +20,18 @@ class _SearchStoresState extends State<SearchStores> {
   Widget build(BuildContext context) {
     return Consumer<StoreProvider>(
         builder: (context,search,child) {
+          if (search.loadingSearch && search.searchStores.isEmpty) {
+            // Searching: say so rather than leaving the prompt up as though
+            // nothing had been typed.
+            return const Center(child: CircularProgressIndicator());
+          }
           if (search.searchStores.isEmpty) {
-            return  Center(child: Text('Search For Stores',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w400,
-              color: IAColors.grey
-            ),
-            ));
+            return Center(
+              child: Text(
+                'Search For Stores',
+                style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+              ),
+            );
           }
           return Padding(
               padding:  EdgeInsets.symmetric(horizontal: 20.0,vertical: 15),

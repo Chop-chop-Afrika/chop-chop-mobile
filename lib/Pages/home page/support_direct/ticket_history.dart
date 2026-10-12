@@ -137,6 +137,9 @@ class _TicketHistoryState extends State<TicketHistory> {
                     final allTickets = supportProvider.userTicketsList;
                     final tickets = allTickets.take(5).toList();
 
+                    if (supportProvider.isLoadingMoreTickets && tickets.isEmpty) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
                     if (tickets.isEmpty) {
                       return Center(
                         child: Text(

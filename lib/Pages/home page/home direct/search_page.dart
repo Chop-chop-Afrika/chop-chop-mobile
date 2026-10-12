@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:chop_chop_africa/Pages/home%20page/home%20direct/search_products.dart';
 import 'package:chop_chop_africa/Pages/home%20page/home%20direct/search_stores.dart';
 import 'package:chop_chop_africa/backend/store_provider.dart';
@@ -20,6 +22,32 @@ class _SearchPageState extends State<SearchPage> {
   String _type = 'stores';
   final TextEditingController _searchController = TextEditingController();
 
+  /// onChanged fires on every keystroke, which sent one request per letter.
+  /// Besides the wasted calls, the responses could arrive out of order and
+  /// leave results that did not match what was typed.
+  Timer? _debounce;
+  static const Duration _debounceDelay = Duration(milliseconds: 350);
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onQueryChanged(StoreProvider search, String value) {
+    _debounce?.cancel();
+    // Clearing the field should empty the list straight away rather than
+    // after the debounce.
+    if (value.trim().isEmpty) {
+      search.clearSearchResults();
+      return;
+    }
+    _debounce = Timer(_debounceDelay, () {
+      search.searchProductsAndStores(_type, value);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final search = Provider.of<StoreProvider>(context,listen:false);
@@ -40,9 +68,7 @@ class _SearchPageState extends State<SearchPage> {
                 }
                 return null;
               },
-              onChanged: (v)async{
-                await search.searchProductsAndStores(_type,v);
-              },
+              onChanged: (v) => _onQueryChanged(search, v),
               style: theme.textTheme.bodySmall,
               decoration: InputDecoration(
                   prefixIcon: Padding(
@@ -89,8 +115,11 @@ class _SearchPageState extends State<SearchPage> {
                   onTap: (index) {
                     setState(() {
                       _type = index == 0 ? 'stores' : 'products';
-                      _searchController.clear();        // 🔥 Cleans the text field
-                      search.searchProductsAndStores(_type, '');
+                      _searchController.clear();
+                      _debounce?.cancel();
+                      // Switching tab resets the field, so clear both result
+                      // lists instead of searching for an empty string.
+                      search.clearSearchResults();
                     });
                   },
                   tabs: [

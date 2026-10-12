@@ -1,6 +1,7 @@
 import 'package:chop_chop_africa/Pages/home%20page/home%20direct/vendor_grid.dart';
 import 'package:chop_chop_africa/backend/store_provider.dart';
 import 'package:chop_chop_africa/utility/sizes.dart';
+import 'package:chop_chop_africa/custom%20widgets/async_content.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
@@ -30,9 +31,28 @@ class _VendorDetailState extends State<VendorDetail> {
   Widget build(BuildContext context) {
     return Consumer<StoreProvider>(
       builder: (context,store,child) {
-        final categories = store.getAllProductCategories?.data;
+        final categories = store.getAllProductCategories?.data ?? [];
+        // categories! crashed this screen whenever the category request had
+        // not finished, which is the normal case on first open.
+        if (categories.isEmpty) {
+          return Scaffold(
+            appBar: AppBar(
+              title: Text(widget.storeName, style: TextStyle(fontSize: 16)),
+              leading: UiUtils.backButton(context),
+            ),
+            body: AsyncContent(
+              loading: store.loadingCategories,
+              isEmpty: true,
+              emptyTitle: 'Nothing on the menu yet',
+              emptyMessage: 'This vendor has not added any items.',
+              emptyIcon: Icons.restaurant_menu_outlined,
+              loadingPlaceholder: const SkeletonList(count: 4, itemHeight: 120),
+              builder: (_) => const SizedBox.shrink(),
+            ),
+          );
+        }
         return DefaultTabController(
-          length: categories!.length + 1,
+          length: categories.length + 1,
           child: Scaffold(
             appBar: AppBar(
               title: Text(widget.storeName,

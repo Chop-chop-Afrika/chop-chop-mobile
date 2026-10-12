@@ -34,6 +34,9 @@ class _SearchProductsState extends State<SearchProducts> {
         builder: (context,store,child) {
           final itemDetails = store.searchProducts;
 
+          if (store.loadingSearch && itemDetails.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
           if (itemDetails.isEmpty) {
             return Center(child:Text('Search For Products',
               style: TextStyle(

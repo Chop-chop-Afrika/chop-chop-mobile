@@ -2,6 +2,7 @@ import 'package:chop_chop_africa/Pages/home%20page/order_direct/orders.dart';
 import 'package:chop_chop_africa/backend/store_provider.dart';
 import 'package:chop_chop_africa/utility/sizes.dart';
 import 'package:chop_chop_africa/utility/uiutils.dart';
+import 'package:chop_chop_africa/custom%20widgets/async_content.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:provider/provider.dart';
@@ -64,10 +65,16 @@ class _VendorGridState extends State<VendorGrid> {
       builder: (context,store,child) {
         final itemDetails = store.getStoreDetailList;
 
-        if (itemDetails.isEmpty) {
-          return Center(child: Text("No items"));
-        }
-        return Padding(
+        // This said "No items" while the first fetch was still running, which
+        // read as an empty store rather than one that had not loaded.
+        return AsyncContent(
+          loading: store.loadingStoreDetail && itemDetails.isEmpty,
+          isEmpty: itemDetails.isEmpty,
+          emptyTitle: 'Nothing on the menu yet',
+          emptyMessage: 'This vendor has not added any items for this category.',
+          emptyIcon: Icons.restaurant_menu_outlined,
+          loadingPlaceholder: const SkeletonList(count: 4, itemHeight: 140),
+          builder: (context) => Padding(
           padding: const EdgeInsets.symmetric(vertical: 15.0,horizontal: 20),
           child: Stack(
             children: [
@@ -152,6 +159,7 @@ class _VendorGridState extends State<VendorGrid> {
                 ),
               ):Container()
             ],
+          ),
           ),
         );
       }

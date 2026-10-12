@@ -2,6 +2,7 @@ import 'package:chop_chop_africa/Pages/Delivery/select_delivery_address.dart';
 import 'package:chop_chop_africa/Pages/home%20page/profile%20direct/new_address.dart';
 import 'package:chop_chop_africa/backend/address_provider.dart';
 import 'package:chop_chop_africa/utility/sizes.dart';
+import 'package:chop_chop_africa/custom%20widgets/async_content.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_svg/svg.dart';
@@ -87,7 +88,14 @@ class _AddressesState extends State<Addresses> {
                 )
               ),
             ),
-            body: Padding(
+            body: AsyncContent(
+              loading: address.loadingAddresses && address.addressList.isEmpty,
+              isEmpty: address.addressList.isEmpty,
+              emptyTitle: 'No saved addresses',
+              emptyMessage:
+                  'Add an address so we know where to deliver your orders.',
+              emptyIcon: Icons.location_on_outlined,
+              builder: (context) => Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: ListView.builder(
                   itemCount: address.addressList.length,
@@ -138,6 +146,7 @@ class _AddressesState extends State<Addresses> {
                     );
                   }
               ),
+            ),
             ),
             persistentFooterButtons: [
               Padding(

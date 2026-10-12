@@ -19,6 +19,10 @@ import '../utility/uiutils.dart';
 import 'models/error_model.dart';
 
 class AddressProvider with ChangeNotifier{
+  /// True while the address list is being fetched, so screens can tell a
+  /// pending load apart from a genuinely empty address book.
+  bool loadingAddresses = false;
+
 
   List<SearchedAddress>? searchedAddress;
   CurrentAddressModel? currentAddress;
@@ -218,6 +222,8 @@ class AddressProvider with ChangeNotifier{
   }
 
   Future<AllAddressesModel?> getAllAddresses() async {
+    loadingAddresses = true;
+    notifyListeners();
     SharedPreferences prefs = await SharedPreferences.getInstance();
     dynamic jsonResponse;
     try {
@@ -265,6 +271,9 @@ class AddressProvider with ChangeNotifier{
         showAlert('Error', errorMessage, 'close');
       }
       return null;
+    } finally {
+      loadingAddresses = false;
+      notifyListeners();
     }
   }
 

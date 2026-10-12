@@ -28,6 +28,19 @@ class StoreProvider with ChangeNotifier{
   UserStoresModel? getAllStores;
   List<Record> allStoresList = [];
   bool isLoadingMoreStores = false;
+
+  /// First-load flags. The pagination flags above only cover "load more", so
+  /// the initial fetch rendered an empty screen with no sign anything was
+  /// happening.
+  bool loadingStores = false;
+  bool loadingTopStores = false;
+  bool loadingTopVendors = false;
+  bool loadingCategories = false;
+  bool loadingStoreDetail = false;
+  bool loadingStoreInfo = false;
+  bool loadingCart = false;
+  bool loadingSearch = false;
+  bool loadingPackages = false;
   int currentStorePage = 1;
   bool hasNextStorePage = true;
   List<TopStoresData> getTopStores =[];
@@ -47,6 +60,12 @@ class StoreProvider with ChangeNotifier{
 
   Future<void> fetchStores(String type,String latitude,String longitude, {bool loadMore = false}) async {
     if (loadMore && (isLoadingMoreStores || !hasNextStorePage)) return;
+    // The flag above only covers pagination, so a first load looked
+    // identical to an empty result.
+    if (!loadMore) {
+      loadingStores = true;
+      notifyListeners();
+    }
     SharedPreferences prefs = await SharedPreferences.getInstance();
     dynamic jsonResponse;
     try {
@@ -91,11 +110,15 @@ class StoreProvider with ChangeNotifier{
       // ✅ Always reset the loading flag
       if (loadMore) {
         isLoadingMoreStores = false;
+      } else {
+        loadingStores = false;
       }
       notifyListeners();
     }
   }
   Future<void> fetchTopStores(String lat, String long) async {
+    loadingTopStores = true;
+    notifyListeners();
     SharedPreferences prefs = await SharedPreferences.getInstance();
     dynamic jsonResponse;
     try {
@@ -113,7 +136,7 @@ class StoreProvider with ChangeNotifier{
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);
         final details = TopStoresModel.fromJson(jsonResponse);
-        getTopStores = details.data!;
+        getTopStores = details.data ?? [];
         notifyListeners();
       } else if (response.statusCode == 400) {
         jsonResponse = jsonDecode(response.body);
@@ -128,10 +151,15 @@ class StoreProvider with ChangeNotifier{
       print('Caught error: $errorMessage');
       notifyListeners();
       return null;
+    } finally {
+      loadingTopStores = false;
+      notifyListeners();
     }
   }
 
   Future<void> fetchTopVendors(String type,String lat, String long) async {
+    loadingTopVendors = true;
+    notifyListeners();
     SharedPreferences prefs = await SharedPreferences.getInstance();
     dynamic jsonResponse;
     try {
@@ -149,7 +177,7 @@ class StoreProvider with ChangeNotifier{
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);
         final details = TopStoresModel.fromJson(jsonResponse);
-        getTopVendors = details.data!;
+        getTopVendors = details.data ?? [];
         notifyListeners();
       } else if (response.statusCode == 400) {
         jsonResponse = jsonDecode(response.body);
@@ -162,6 +190,9 @@ class StoreProvider with ChangeNotifier{
     } catch (error) {
       String errorMessage = error.toString();
       print('Caught error: $errorMessage');
+      notifyListeners();
+    } finally {
+      loadingTopVendors = false;
       notifyListeners();
     }
   }
@@ -176,6 +207,12 @@ class StoreProvider with ChangeNotifier{
   Future<void> fetchStoreDetail(String storeId,String? category, {bool loadMore = false}) async {
 
     if (loadMore && (isLoadingMoreStoreDetail || !hasNextStoreDetailPage)) return;
+    // The flag above only covers pagination, so a first load looked
+    // identical to an empty result.
+    if (!loadMore) {
+      loadingStoreDetail = true;
+      notifyListeners();
+    }
     SharedPreferences prefs = await SharedPreferences.getInstance();
     dynamic jsonResponse;
     try {
@@ -200,9 +237,11 @@ class StoreProvider with ChangeNotifier{
         jsonResponse = jsonDecode(response.body);
         final details = StoreDetailModel.fromJson(jsonResponse);
         getAllStoreDetails = details;
-        hasNextStoreDetailPage = details.data!.hasNextPage??false;
-        currentStoreDetailPage = details.data!.nextPage ?? currentStoreDetailPage;
-        getStoreDetailList.addAll(details.data!.record ?? []);
+        // A missing page object means no more results, not a crash.
+        final page = details.data;
+        hasNextStoreDetailPage = page?.hasNextPage ?? false;
+        currentStoreDetailPage = page?.nextPage ?? currentStoreDetailPage;
+        getStoreDetailList.addAll(page?.record ?? []);
         notifyListeners();
       } else if (response.statusCode == 400) {
         jsonResponse = jsonDecode(response.body);
@@ -220,12 +259,16 @@ class StoreProvider with ChangeNotifier{
       // ✅ Always reset the loading flag
       if (loadMore) {
         isLoadingMoreStoreDetail = false;
+      } else {
+        loadingStoreDetail = false;
       }
       notifyListeners();
     }
   }
 
   Future<void> fetchAllProductCategories() async {
+    loadingCategories = true;
+    notifyListeners();
     SharedPreferences prefs = await SharedPreferences.getInstance();
     dynamic jsonResponse;
     try {
@@ -256,6 +299,9 @@ class StoreProvider with ChangeNotifier{
     } catch (error) {
       String errorMessage = error.toString();
       print('Caught error: $errorMessage');
+      notifyListeners();
+    } finally {
+      loadingCategories = false;
       notifyListeners();
     }
   }
@@ -427,6 +473,8 @@ class StoreProvider with ChangeNotifier{
   }
 
   Future<void> fetchAllCartItems() async {
+    loadingCart = true;
+    notifyListeners();
     SharedPreferences prefs = await SharedPreferences.getInstance();
     dynamic jsonResponse;
     try {
@@ -458,14 +506,38 @@ class StoreProvider with ChangeNotifier{
       String errorMessage = error.toString();
       print('Caught error: $errorMessage');
       notifyListeners();
+    } finally {
+      loadingCart = false;
+      notifyListeners();
     }
   }
 
+  /// Empties both result lists, e.g. when the search field is cleared or the
+  /// stores/products tab changes.
+  void clearSearchResults() {
+    searchStores = [];
+    searchProducts = [];
+    notifyListeners();
+  }
+
   Future<void> searchProductsAndStores(String type, String search) async {
+    loadingSearch = true;
+    notifyListeners();
+    // Clearing the field used to fire a search with an empty query, whose
+    // response carries no `data` — the old `data!` then threw "Null check
+    // operator used on a null value". Nothing to search for means nothing to
+    // show, so clear locally and skip the request entirely.
+    final String query = search.trim();
+    if (query.isEmpty) {
+      clearSearchResults();
+      return;
+    }
+
     SharedPreferences prefs = await SharedPreferences.getInstance();
     dynamic jsonResponse;
     try {
-      String url = "${Env.BACKEND_URL}/user/search?query=$search&type=$type";
+      final String url =
+          "${Env.BACKEND_URL}/user/search?query=${Uri.encodeQueryComponent(query)}&type=$type";
       final response = await apiClient.get(
         Uri.parse(url),
         headers: {
@@ -478,12 +550,14 @@ class StoreProvider with ChangeNotifier{
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);
+        // An empty or unexpected payload yields no list; show no results
+        // rather than throwing.
         if(type == 'products'){
           final details = SearchProductModel.fromJson(jsonResponse);
-          searchProducts = details.data!;
+          searchProducts = details.data ?? [];
         }else{
           final details = SearchStoreModel.fromJson(jsonResponse);
-          searchStores = details.data!;
+          searchStores = details.data ?? [];
         }
 
         notifyListeners();
@@ -498,6 +572,9 @@ class StoreProvider with ChangeNotifier{
     } catch (error) {
       String errorMessage = error.toString();
       print('Caught error: $errorMessage');
+      notifyListeners();
+    } finally {
+      loadingSearch = false;
       notifyListeners();
     }
   }
@@ -530,6 +607,8 @@ class StoreProvider with ChangeNotifier{
   }
 
   Future<void> getPackageStatus(String status) async {
+    loadingPackages = true;
+    notifyListeners();
     SharedPreferences prefs = await SharedPreferences.getInstance();
     dynamic jsonResponse;
     try {
@@ -547,7 +626,7 @@ class StoreProvider with ChangeNotifier{
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);
         final details = GetActivePackageModel.fromJson(jsonResponse);
-        activePackage = details.data!;
+        activePackage = details.data ?? [];
         notifyListeners();
       } else if (response.statusCode == 400) {
         jsonResponse = jsonDecode(response.body);
@@ -561,6 +640,9 @@ class StoreProvider with ChangeNotifier{
       String errorMessage = error.toString();
       print('Caught error: $errorMessage');
       notifyListeners();
+    } finally {
+      loadingPackages = false;
+      notifyListeners();
     }
   }
 
@@ -573,6 +655,8 @@ class StoreProvider with ChangeNotifier{
   }
 
   Future<void> fetchStoreInformation(String storeId) async {
+    loadingStoreInfo = true;
+    notifyListeners();
     SharedPreferences prefs = await SharedPreferences.getInstance();
     dynamic jsonResponse;
     try {
@@ -603,6 +687,9 @@ class StoreProvider with ChangeNotifier{
     } catch (error) {
       String errorMessage = error.toString();
       print('Caught error: $errorMessage');
+      notifyListeners();
+    } finally {
+      loadingStoreInfo = false;
       notifyListeners();
     }
   }
