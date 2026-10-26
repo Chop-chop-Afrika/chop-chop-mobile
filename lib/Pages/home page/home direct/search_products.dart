@@ -102,7 +102,7 @@ class _SearchProductsState extends State<SearchProducts> {
                                  crossAxisAlignment: CrossAxisAlignment.start,
                                  children: [
                                    UiUtils.subTitles(itemDetails[index].name??'', 15),
-                                   UiUtils.subTitles('\$${itemDetails[index].price}', 13),
+                                   UiUtils.subTitles('₦${itemDetails[index].price}', 13),
                                  ],
                                ),
                                IconButton(
@@ -143,7 +143,7 @@ class _SearchProductsState extends State<SearchProducts> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text('Proceed to order ${store.getCartItems?.data?.itemCount ?? 0} item'),
-                              Text('\$${formatter.format(store.getCartItems?.data?.grandTotal)}')
+                              Text('₦${formatter.format(store.getCartItems?.data?.grandTotal)}')
                             ],
                           )
                       ),
@@ -260,7 +260,7 @@ class _SearchProductsState extends State<SearchProducts> {
                               FontWeight.w400),
                           2.gap,
                           bottomNavDescriptions(
-                            hasVariants ? "\$$variantPrice" : "\$$totalPrice",
+                            hasVariants ? "₦$variantPrice" : "₦$totalPrice",
                             24,
                             FontWeight.w800,
                           ),
@@ -443,7 +443,7 @@ class _SearchProductsState extends State<SearchProducts> {
                             }
                           },
                           child: Text(
-                            'Add $_amount for \$${hasVariants ? variantPrice : totalPrice}',
+                            'Add $_amount for ₦${hasVariants ? variantPrice : totalPrice}',
                           ),
                         ),
                       ),

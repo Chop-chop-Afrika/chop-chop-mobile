@@ -117,9 +117,15 @@ class _MainHomeState extends State<MainHome> {
     Provider.of<ProfileProvider>(context,listen: false).getProfile();
     await Provider.of<AddressProvider>(context,listen: false).getAllAddresses();
     if(mounted){
+      // The address call can fail (an expired token, no network, a rider
+      // account on a customer route) leaving no default address. Only the
+      // two store calls below need coordinates, so skip just those rather
+      // than taking the whole home screen down with them.
       final getLatLng = Provider.of<AddressProvider>(context,listen: false).defaultAddress;
-      Provider.of<StoreProvider>(context,listen: false).fetchTopStores(getLatLng!.latitude.toString(), getLatLng.longitude.toString());
-      Provider.of<StoreProvider>(context,listen: false).fetchTopVendors('RESTAURANT',getLatLng.latitude.toString(), getLatLng.longitude.toString());
+      if (getLatLng != null) {
+        Provider.of<StoreProvider>(context,listen: false).fetchTopStores(getLatLng.latitude.toString(), getLatLng.longitude.toString());
+        Provider.of<StoreProvider>(context,listen: false).fetchTopVendors('RESTAURANT',getLatLng.latitude.toString(), getLatLng.longitude.toString());
+      }
       Provider.of<StoreProvider>(context,listen: false).fetchAllProductCategories();
       Provider.of<StoreProvider>(context,listen: false).fetchAllCartItems();
       Provider.of<SupportProvider>(context, listen: false).getSupportInfo();

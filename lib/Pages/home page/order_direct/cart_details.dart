@@ -87,7 +87,7 @@ class _CartDetailsState extends State<CartDetails> {
                               ),
                             ),
                             title: UiUtils.subTitles(cutUnwantedPart(allCartItems.product!.name!), 14),
-                            subtitle: Text('${allCartItems.quantity} items ● \$${formatter.format(allCartItems.totalPrice)}',
+                            subtitle: Text('${allCartItems.quantity} items ● ₦${formatter.format(allCartItems.totalPrice)}',
                             style: TextStyle(
                               fontSize: 13
                             ),
