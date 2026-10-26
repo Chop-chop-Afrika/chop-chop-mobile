@@ -76,6 +76,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_launcher_icons: ^0.14.4
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -88,6 +89,19 @@ dev_dependencies:
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
+
+# App icon, generated from the brand mark with:
+#   dart run flutter_launcher_icons
+# iOS rejects icons containing alpha, so the transparent rounded corners are
+# flattened onto the mark's own green; iOS applies its own corner mask anyway.
+flutter_launcher_icons:
+  image_path: "assets/images/Frame 1171279450.png"
+  ios: true
+  remove_alpha_ios: true
+  background_color_ios: "#00522c"
+  android: "launcher_icon"
+  adaptive_icon_background: "#00522c"
+  adaptive_icon_foreground: "assets/images/Frame 1171279450.png"
 
 # The following section is specific to Flutter packages.
 flutter:
