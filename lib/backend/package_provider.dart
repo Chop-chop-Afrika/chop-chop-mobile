@@ -134,18 +134,55 @@ class PackageProvider with ChangeNotifier {
     }
   }
 
-  /// Packages have no payment-status endpoint, unlike orders, so confirmation
-  /// is read off the package itself: status 1 means paid and waiting for a
-  /// rider. Stripe confirms by webhook, so this polls briefly.
-  Future<PackageData?> waitForPackagePayment(
+  /// Whether a package's payment has actually gone through.
+  ///
+  /// Uses the dedicated endpoint rather than inferring it from the package's
+  /// own status, so "paid but not yet processed" is distinguishable from
+  /// "never paid" — the exact ambiguity that made stuck packages hard to read.
+  Future<PackagePaymentStatus?> getPackagePaymentStatus(String packageId) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    try {
+      final String url =
+          "${Env.BACKEND_URL}/user/packages/$packageId/payment-status";
+      final response = await apiClient.get(
+        Uri.parse(url),
+        headers: _headers(prefs),
+      );
+
+      if (_ok(response.statusCode)) {
+        return PackagePaymentStatusModel.fromJson(jsonDecode(response.body))
+            .data;
+      }
+      if (response.statusCode != 401) {
+        print('Package payment status failed: '
+            '${response.statusCode} ${response.body}');
+      }
+      return null;
+    } catch (error) {
+      print('Package payment status error: $error');
+      return null;
+    }
+  }
+
+  /// Polls until the payment is confirmed. Stripe confirms to the backend by
+  /// webhook, so there is a short gap after the checkout webview closes.
+  ///
+  /// Stops early on an explicit failure rather than running out the attempts,
+  /// and refreshes the package itself once paid so callers see the code and
+  /// delivery PIN the payment unlocks.
+  Future<PackagePaymentStatus?> waitForPackagePayment(
     String packageId, {
     int attempts = 6,
     Duration interval = const Duration(seconds: 2),
   }) async {
-    PackageData? last;
+    PackagePaymentStatus? last;
     for (int i = 0; i < attempts; i++) {
-      last = await getPackageDetails(packageId, silent: true);
-      if ((last?.status ?? 0) >= 1) return last;
+      last = await getPackagePaymentStatus(packageId);
+      if (last?.isPaid == true) {
+        await getPackageDetails(packageId, silent: true);
+        return last;
+      }
+      if (last?.hasFailed == true) return last;
       if (i < attempts - 1) await Future.delayed(interval);
     }
     return last;
