@@ -209,8 +209,7 @@ class _ActivePackageHistoryState extends State<ActivePackageHistory> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _packageDetails(false, 'Cost', '\$20'),
-                _packageDetails(true, 'Package', activePackage.type!),
+                _packageDetails(false, 'Package', activePackage.type!),
                 _packageDetails(true, 'Delivery Address', cutUnwantedPart(activePackage.dropOffAddress!)),
               ],
             )

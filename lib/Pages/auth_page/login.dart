@@ -77,7 +77,7 @@ class _LoginState extends State<Login> {
               2.gap,
               title('Email'),
               SizedBox(
-                height: 11.pH,
+                height: 9.5.pH,
                 child: TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
@@ -93,14 +93,13 @@ class _LoginState extends State<Login> {
                     }
                     return null;
                   },
-                  style: Theme.of(context).textTheme.bodySmall,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 15),
                   decoration: InputDecoration(
                     filled: true,
                     fillColor: Colors.grey.shade200,
-                    contentPadding: EdgeInsets.only(top: 3, left: 10),
-                    errorStyle: TextStyle(fontSize: 14),
+                    errorStyle: TextStyle(fontSize: 12),
                     hintText: 'Enter your email',
-                    hintStyle: TextStyle(height: 2, fontSize: 14),
+                    hintStyle: TextStyle(fontSize: 15),
                     helperText: '',
                   ),
                 ),

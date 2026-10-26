@@ -225,3 +225,52 @@ class PackageListModel {
     }
   }
 }
+
+/// GET /user/packages/{id}/payment-status — the explicit answer to "has this
+/// been paid", rather than inferring it from the package's own status.
+class PackagePaymentStatusModel {
+  bool? status;
+  String? message;
+  PackagePaymentStatus? data;
+
+  PackagePaymentStatusModel({this.status, this.message, this.data});
+
+  PackagePaymentStatusModel.fromJson(Map<String, dynamic> json) {
+    status = json['status'];
+    message = json['message'];
+    data = json['data'] != null
+        ? PackagePaymentStatus.fromJson(json['data'])
+        : null;
+  }
+}
+
+class PackagePaymentStatus {
+  String? packageId;
+
+  /// e.g. paid, pending, failed
+  String? paymentStatus;
+
+  /// The package's own status code, as returned by the package endpoints.
+  int? packageStatus;
+  String? code;
+
+  PackagePaymentStatus({
+    this.packageId,
+    this.paymentStatus,
+    this.packageStatus,
+    this.code,
+  });
+
+  PackagePaymentStatus.fromJson(Map<String, dynamic> json) {
+    packageId = json['packageId'];
+    paymentStatus = json['paymentStatus'];
+    packageStatus = (json['packageStatus'] as num?)?.toInt();
+    code = json['code'];
+  }
+
+  bool get isPaid => paymentStatus == 'paid';
+
+  /// A payment that will not arrive, so polling should stop rather than run
+  /// to its limit.
+  bool get hasFailed => paymentStatus == 'failed' || paymentStatus == 'canceled';
+}

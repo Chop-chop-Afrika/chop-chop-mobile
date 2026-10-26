@@ -134,7 +134,7 @@ class _MyCartState extends State<MyCart> {
                   trailing: Column(
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
-                      Text('\$${formatter.format(cartStores[index].subtotal)}',
+                      Text('₦${formatter.format(cartStores[index].subtotal)}',
                       style: TextStyle(
                         fontSize: 15
                       ),

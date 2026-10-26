@@ -125,7 +125,7 @@ class _VendorGridState extends State<VendorGrid> {
                           ),
                           1.gap,
                           UiUtils.subTitles(itemDetails[index].name??'', 15),
-                          UiUtils.subTitles('\$${itemDetails[index].price}', 13),
+                          UiUtils.subTitles('₦${itemDetails[index].price}', 13),
                         ],
                       ),
                     );
@@ -151,7 +151,7 @@ class _VendorGridState extends State<VendorGrid> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text('Proceed to order ${store.getCartItems?.data?.itemCount ?? 0} item'),
-                            Text('\$${formatter.format(store.getCartItems?.data?.grandTotal)}')
+                            Text('₦${formatter.format(store.getCartItems?.data?.grandTotal)}')
                           ],
                         )
                     ),
@@ -269,7 +269,7 @@ class _VendorGridState extends State<VendorGrid> {
                                     FontWeight.w400),
                                 2.gap,
                                 bottomNavDescriptions(
-                                  hasVariants ? "\$$variantPrice" : "\$$totalPrice",
+                                  hasVariants ? "₦$variantPrice" : "₦$totalPrice",
                                   20,
                                   FontWeight.w800,
                                 ),
@@ -452,7 +452,7 @@ class _VendorGridState extends State<VendorGrid> {
                                  }
                                 },
                                 child: Text(
-                                  'Add $_amount for \$${hasVariants ? variantPrice : totalPrice}',
+                                  'Add $_amount for ₦${hasVariants ? variantPrice : totalPrice}',
                                 ),
                               ),
                             ),

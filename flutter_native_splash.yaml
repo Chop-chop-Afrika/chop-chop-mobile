@@ -146,7 +146,14 @@ flutter_native_splash:
     # image_dark: assets/images/logo/logo-splash2.png
 
     # center-logo background color
-    icon_background_color: "#ffffff"
+    #
+    # Deliberately left unset. Setting it switches Android 12 to the
+    # "with background" sizing — a 960px canvas whose artwork must fit a 640px
+    # circle. The logo here is a wide wordmark 684px across inside a 1152px
+    # canvas, which is the "without background" spec (768px circle). With the
+    # background colour on, the icon was scaled up and clipped by the smaller
+    # circle, which is why Android looked stretched while iOS was fine.
+    # icon_background_color: "#ffffff"
     # icon_background_color_dark: "#eeeeee"
 
     # branding:

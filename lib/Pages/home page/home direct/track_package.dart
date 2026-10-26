@@ -46,6 +46,10 @@ class _TrackPackageState extends State<TrackPackage> {
   int _paymentPolls = 0;
   bool _paymentPollGaveUp = false;
 
+  /// Set when the API reports the payment as failed rather than pending, so
+  /// the screen can say so instead of polling to the limit.
+  bool _paymentFailed = false;
+
   @override
   void initState() {
     super.initState();
@@ -64,16 +68,31 @@ class _TrackPackageState extends State<TrackPackage> {
   }
 
   Future<void> _load({bool silent = false}) async {
-    final data = await Provider.of<PackageProvider>(context, listen: false)
-        .getPackageDetails(widget.packageId, silent: silent);
+    final provider = Provider.of<PackageProvider>(context, listen: false);
+    final data = await provider.getPackageDetails(widget.packageId, silent: silent);
     if (!mounted) return;
-    // Keep checking until the payment webhook lands, then stop.
-    if (PackagePhase.isAwaitingPayment(data?.status)) {
-      _startPaymentPoll();
-    } else {
+
+    if (!PackagePhase.isAwaitingPayment(data?.status)) {
       _stopPaymentPoll();
-      if (_paymentPollGaveUp) setState(() => _paymentPollGaveUp = false);
+      if (_paymentPollGaveUp || _paymentFailed) {
+        setState(() {
+          _paymentPollGaveUp = false;
+          _paymentFailed = false;
+        });
+      }
+      return;
     }
+
+    // Still unpaid. Ask the payment endpoint directly: a failed payment is
+    // never going to arrive, so there is no point polling for it.
+    final status = await provider.getPackagePaymentStatus(widget.packageId);
+    if (!mounted) return;
+    if (status?.hasFailed == true) {
+      _stopPaymentPoll();
+      setState(() => _paymentFailed = true);
+      return;
+    }
+    _startPaymentPoll();
   }
 
   void _startPaymentPoll() {
@@ -164,7 +183,11 @@ class _TrackPackageState extends State<TrackPackage> {
                 if (failed)
                   _failedCard(pkg)
                 else if (awaiting)
-                  (_paymentPollGaveUp ? _stalledCard() : _awaitingCard())
+                  (_paymentFailed
+                      ? _paymentFailedCard()
+                      : _paymentPollGaveUp
+                          ? _stalledCard()
+                          : _awaitingCard())
                 else
                   _stepper(currentStep),
                 3.gap,
@@ -319,6 +342,35 @@ class _TrackPackageState extends State<TrackPackage> {
                 onPressed: _retryPaymentCheck,
                 child: const Text('Check again'),
               ),
+            ),
+          ],
+        ),
+      );
+
+  /// The payment itself failed, as reported by the payment-status endpoint.
+  /// Distinct from [_stalledCard], which means we simply have not heard yet.
+  Widget _paymentFailedCard() => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.red.shade50,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.error_outline, size: 20, color: Colors.red.shade400),
+                const SizedBox(width: 10),
+                Expanded(child: UiUtils.subTitles('Payment failed', 15)),
+              ],
+            ),
+            0.8.gap,
+            Text(
+              'Your payment did not go through, so this delivery was not '
+              'booked. You have not been charged — please try again.',
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade800),
             ),
           ],
         ),
