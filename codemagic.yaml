@@ -72,6 +72,36 @@ workflows:
       cancel_previous_builds: true
 
     scripts:
+      - name: Check the signing credentials are present
+        # Runs first, before anything slow. Signing happens at step 8, so a
+        # missing variable used to cost four minutes of pub get, analyze,
+        # tests and pods before surfacing - and surfaced as a CLI error that
+        # does not name the variable it wanted. One second here instead.
+        #
+        # Only lengths are printed. The values are secrets.
+        script: |
+          missing=
+          for name in APP_STORE_CONNECT_ISSUER_ID \
+                      APP_STORE_CONNECT_KEY_IDENTIFIER \
+                      APP_STORE_CONNECT_PRIVATE_KEY \
+                      CERTIFICATE_PRIVATE_KEY; do
+            value="${!name}"
+            if [ -z "$value" ]; then
+              echo "MISSING   $name"
+              missing=1
+            else
+              echo "present   $name (${#value} characters)"
+            fi
+          done
+          if [ -n "$missing" ]; then
+            echo
+            echo "The first three come from the app_store_connect integration."
+            echo "CERTIFICATE_PRIVATE_KEY is a variable you add yourself, in"
+            echo "the app's Environment variables tab, in a group named"
+            echo "code-signing, which environment.groups then pulls in."
+            exit 1
+          fi
+
       - name: Get Flutter packages
         script: flutter pub get
 
@@ -116,6 +146,7 @@ workflows:
         script: |
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
+            --certificate-key=@env:CERTIFICATE_PRIVATE_KEY \
             --create
 
       - name: Add the certificate to the keychain
