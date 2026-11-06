@@ -7,6 +7,7 @@ import 'package:chop_chop_africa/backend/profile_provider.dart';
 import 'package:chop_chop_africa/backend/store_provider.dart';
 import 'package:chop_chop_africa/backend/support_provider.dart';
 import 'package:chop_chop_africa/utility/sizes.dart';
+import 'package:chop_chop_africa/custom%20widgets/refreshable.dart';
 import 'package:flutter/material.dart';
 import 'package:chop_chop_africa/Pages/home%20page/profile%20direct/wallet.dart';
 import 'package:chop_chop_africa/Pages/home%20page/profile%20direct/invite_friend.dart';
@@ -36,6 +37,11 @@ class _ProfileState extends State<Profile> {
       final profile = Provider.of<ProfileProvider>(context, listen: false);
       if (profile.getAllProfileInfo?.data == null) profile.getProfile();
     });
+  }
+
+  Future<void> _refresh() async {
+    final profile = Provider.of<ProfileProvider>(context, listen: false);
+    await profile.getProfile();
   }
 
   /// Interpolating the two name fields directly printed the literal
@@ -107,9 +113,12 @@ class _ProfileState extends State<Profile> {
               ),
             ),
           ),
-          body: Padding(
+          body: Refreshable(
+            onRefresh: _refresh,
+            child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
             child: SingleChildScrollView(
+              physics: Refreshable.physics,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -203,6 +212,7 @@ class _ProfileState extends State<Profile> {
                   ),
                 ],
               ),
+            ),
             ),
           ),
         );

@@ -35,7 +35,7 @@ class ProfileProvider with ChangeNotifier{
         },
       );
 
-
+      print('GET /user/profile -> ${response.statusCode} ${response.body}');
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);
         final details = ProfileModel.fromJson(jsonResponse);
@@ -64,7 +64,7 @@ class ProfileProvider with ChangeNotifier{
     }
   }
 
-  Future<dynamic> updateProfile( String firstName,String lastName,String email, String dob, BuildContext context) async {
+  Future<dynamic> updateProfile( String firstName,String lastName, String dob, String phone, BuildContext context) async {
     dynamic jsonResponse;
     SharedPreferences prefs = await SharedPreferences.getInstance();
     notifyListeners();
@@ -80,10 +80,11 @@ class ProfileProvider with ChangeNotifier{
         body: jsonEncode({
           "firstName": firstName,
           "lastName": lastName,
-          "email": email,
-          "dob": dob
+          "dob": dob,
+          "phone": phone
         }),
       );
+      print('PATCH /user/profile/update -> ${response.statusCode} ${response.body}');
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);
         final success = SuccessModel.fromJson(jsonResponse);
@@ -93,14 +94,16 @@ class ProfileProvider with ChangeNotifier{
         return success;
       } else if (response.statusCode == 400) {
         jsonResponse = jsonDecode(response.body);
-        final errorResponse = ErrorModel.fromJson(jsonResponse);
-        print('Error: ${errorResponse.message}');
-        showAlert('Error',errorResponse.message!, 'close');
+        // The API reports validation failures as a list of strings, so this
+        // cannot go through ErrorModel, whose message is a single String.
+        final message = readApiMessage(jsonResponse);
+        print('Error: $message');
+        showAlert('Error', message, 'close');
         notifyListeners();
-        return errorResponse;
+        return ErrorModel(message: message, statusCode: 400);
       } else {
         jsonResponse = jsonDecode(response.body);
-        throw jsonResponse['message'];
+        throw readApiMessage(jsonResponse);
       }
     } catch (error) {
       String errorMessage = error.toString();
@@ -174,6 +177,15 @@ class ProfileProvider with ChangeNotifier{
   void clearData() {
     getAllProfileInfo = null;
     notifyListeners();
+  }
+
+  /// `message` comes back as a String for thrown errors and as a List of
+  /// strings when the validation pipe rejects the body.
+  String readApiMessage(dynamic body) {
+    final raw = body is Map ? body['message'] : null;
+    if (raw is List) return raw.join('\n');
+    if (raw is String && raw.isNotEmpty) return raw;
+    return 'Something went wrong';
   }
 
   showAlert(String title,String content,String defaultAction, {Function(bool)? onDismissed = null}) {

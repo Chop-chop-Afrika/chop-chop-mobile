@@ -2,6 +2,7 @@ import 'package:chop_chop_africa/Pages/home%20page/support_direct/support_messag
 import 'package:chop_chop_africa/backend/support_provider.dart';
 import 'package:chop_chop_africa/utility/iacolors.dart';
 import 'package:chop_chop_africa/utility/sizes.dart';
+import 'package:chop_chop_africa/custom%20widgets/refreshable.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -113,6 +114,24 @@ class _AllTicketsState extends State<AllTickets> {
     );
   }
 
+  Future<void> _refresh() =>
+      Provider.of<SupportProvider>(context, listen: false).fetchTicketHistory();
+
+  /// Short states still need something that overscrolls, or the pull never
+  /// starts and refresh looks broken rather than absent.
+  Widget _pullable(Widget child) => Refreshable(
+        onRefresh: _refresh,
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            physics: Refreshable.physics,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: child,
+            ),
+          ),
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -147,7 +166,7 @@ class _AllTicketsState extends State<AllTickets> {
                     }
 
                     if (tickets.isEmpty) {
-                      return Center(
+                      return _pullable(Center(
                         child: Text(
                           _showingHistory
                               ? 'No past tickets'
@@ -157,10 +176,13 @@ class _AllTicketsState extends State<AllTickets> {
                             color: Colors.grey.shade600,
                           ),
                         ),
-                      );
+                      ));
                     }
 
-                    return SingleChildScrollView(
+                    return Refreshable(
+                      onRefresh: _refresh,
+                      child: SingleChildScrollView(
+                      physics: Refreshable.physics,
                       controller: _scrollController,
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
@@ -367,6 +389,7 @@ class _AllTicketsState extends State<AllTickets> {
                           ),
                         ),
                       ),
+                    ),
                     );
                   },
                 ),

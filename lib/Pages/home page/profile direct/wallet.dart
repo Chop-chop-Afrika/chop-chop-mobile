@@ -1,4 +1,5 @@
 import 'package:chop_chop_africa/utility/sizes.dart';
+import 'package:chop_chop_africa/custom%20widgets/refreshable.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -75,9 +76,10 @@ class _WalletState extends State<Wallet> {
       body: Consumer<OrderProvider>(
         builder: (context, provider, _) {
           final items = provider.walletTransactions;
-          return RefreshIndicator(
+          return Refreshable(
             onRefresh: _load,
             child: ListView.separated(
+              physics: Refreshable.physics,
               controller: _scrollController,
               padding: const EdgeInsets.symmetric(horizontal: 20),
               itemCount: items.length + 2 + (provider.txHasMore ? 1 : 0),

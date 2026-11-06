@@ -1,5 +1,6 @@
 import 'package:chop_chop_africa/Pages/home%20page/profile%20direct/your_invites.dart';
 import 'package:chop_chop_africa/utility/sizes.dart';
+import 'package:chop_chop_africa/custom%20widgets/refreshable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -88,7 +89,7 @@ class _InviteFriendState extends State<InviteFriend> {
                   ? null
                   : 'Join me on Chop Chop Africa! Use my code $code when you sign up.');
 
-          return RefreshIndicator(
+          return Refreshable(
             onRefresh: provider.loadAll,
             child: ListView(
               padding: EdgeInsets.symmetric(horizontal: 5.pW),

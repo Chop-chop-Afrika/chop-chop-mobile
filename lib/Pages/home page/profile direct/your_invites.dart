@@ -1,4 +1,5 @@
 import 'package:chop_chop_africa/utility/sizes.dart';
+import 'package:chop_chop_africa/custom%20widgets/refreshable.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -66,9 +67,10 @@ class _YourInvitesState extends State<YourInvites> {
                 ? const Center(child: CircularProgressIndicator())
                 : _empty();
           }
-          return RefreshIndicator(
+          return Refreshable(
             onRefresh: () => provider.getInvites(refresh: true),
             child: ListView.separated(
+              physics: Refreshable.physics,
               controller: _scrollController,
               padding: EdgeInsets.symmetric(horizontal: 5.pW),
               itemCount: invites.length + (provider.hasNextInvitesPage ? 1 : 0),

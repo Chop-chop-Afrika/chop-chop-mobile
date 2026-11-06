@@ -44,6 +44,7 @@ class AddressProvider with ChangeNotifier{
           'Authorization': "Bearer ${prefs.getString('accessToken')}",
         },
       );
+      print('GET /user/address/search?q=$search -> ${response.statusCode} ${response.body}');
 
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -88,6 +89,7 @@ class AddressProvider with ChangeNotifier{
           'Authorization': "Bearer ${prefs.getString('accessToken')}",
         },
       );
+      print('GET /user/address/current-location?lat=$lat&lng=$lng -> ${response.statusCode} ${response.body}');
 
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -132,6 +134,7 @@ class AddressProvider with ChangeNotifier{
           "isDefault": defaultAddress
         }),
       );
+      print('POST /user/address/create-from-place -> ${response.statusCode} ${response.body}');
       print('done');
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);
@@ -187,6 +190,7 @@ class AddressProvider with ChangeNotifier{
           "isDefault": defaultAddress
         }),
       );
+      print('POST /user/address/create -> ${response.statusCode} ${response.body}');
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);
         final success = SuccessModel.fromJson(jsonResponse);
@@ -236,6 +240,7 @@ class AddressProvider with ChangeNotifier{
           'Authorization': "Bearer ${prefs.getString('accessToken')}",
         },
       );
+      print('GET /user/address/all -> ${response.statusCode} ${response.body}');
 
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -298,6 +303,7 @@ class AddressProvider with ChangeNotifier{
           "isDefault": true
         }),
       );
+      print('PATCH /user/address/update/$id -> ${response.statusCode} ${response.body}');
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);
         final success = SuccessModel.fromJson(jsonResponse);
@@ -345,6 +351,7 @@ class AddressProvider with ChangeNotifier{
           'Authorization': "Bearer ${prefs.getString('accessToken')}",
         },
       );
+      print('GET /user/address/place/$placeId -> ${response.statusCode} ${response.body}');
 
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -383,6 +390,7 @@ class AddressProvider with ChangeNotifier{
           'Authorization': "Bearer ${prefs.getString('accessToken')}",
         },
       );
+      print('DELETE /user/address/delete/$id -> ${response.statusCode} ${response.body}');
 
 
       if (response.statusCode == 200 || response.statusCode == 201) {

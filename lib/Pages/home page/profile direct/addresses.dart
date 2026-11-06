@@ -1,8 +1,8 @@
 import 'package:chop_chop_africa/Pages/Delivery/select_delivery_address.dart';
-import 'package:chop_chop_africa/Pages/home%20page/profile%20direct/new_address.dart';
 import 'package:chop_chop_africa/backend/address_provider.dart';
 import 'package:chop_chop_africa/utility/sizes.dart';
 import 'package:chop_chop_africa/custom%20widgets/async_content.dart';
+import 'package:chop_chop_africa/custom%20widgets/refreshable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_svg/svg.dart';
@@ -20,6 +20,19 @@ class Addresses extends StatefulWidget {
 
 class _AddressesState extends State<Addresses> {
 
+  @override
+  void initState() {
+    super.initState();
+    // Nothing on this screen used to load the list: it rendered whatever
+    // AddressProvider happened to be holding, so opening it before anything
+    // else had fetched showed an empty address book with no way to recover.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<AddressProvider>(context, listen: false).getAllAddresses();
+    });
+  }
+
+  Future<void> _refresh() =>
+      Provider.of<AddressProvider>(context, listen: false).getAllAddresses();
 
   @override
   Widget build(BuildContext context) {
@@ -88,7 +101,9 @@ class _AddressesState extends State<Addresses> {
                 )
               ),
             ),
-            body: AsyncContent(
+            body: Refreshable(
+              onRefresh: _refresh,
+              child: AsyncContent(
               loading: address.loadingAddresses && address.addressList.isEmpty,
               isEmpty: address.addressList.isEmpty,
               emptyTitle: 'No saved addresses',
@@ -98,6 +113,7 @@ class _AddressesState extends State<Addresses> {
               builder: (context) => Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: ListView.builder(
+                  physics: Refreshable.physics,
                   itemCount: address.addressList.length,
                   itemBuilder: (context, index){
                     var addressDetail = address.addressList[index];
@@ -146,6 +162,7 @@ class _AddressesState extends State<Addresses> {
                     );
                   }
               ),
+            ),
             ),
             ),
             persistentFooterButtons: [

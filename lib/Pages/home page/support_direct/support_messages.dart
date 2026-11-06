@@ -6,6 +6,7 @@ import 'package:chop_chop_africa/utility/iacolors.dart';
 import 'package:chop_chop_africa/utility/image_services.dart';
 import 'package:chop_chop_africa/utility/sizes.dart';
 import 'package:chop_chop_africa/utility/uiutils.dart';
+import 'package:chop_chop_africa/custom%20widgets/refreshable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
@@ -29,6 +30,25 @@ class _SupportMessagesState extends State<SupportMessages> {
     final supportProvider = Provider.of<SupportProvider>(context, listen: false);
     supportProvider.getTicketDetails(widget.ticketId);
   }
+
+  /// Support replies arrive while the thread is open, and nothing pushes
+  /// them, so a pull is the only way to see a new one.
+  Future<void> _refresh() =>
+      Provider.of<SupportProvider>(context, listen: false)
+          .getTicketDetails(widget.ticketId);
+
+  Widget _pullable(Widget child) => Refreshable(
+        onRefresh: _refresh,
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            physics: Refreshable.physics,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: child,
+            ),
+          ),
+        ),
+      );
 
   @override
   void dispose() {
@@ -134,12 +154,15 @@ class _SupportMessagesState extends State<SupportMessages> {
                   final lastName = profileProvider.getAllProfileInfo?.data?.lastName ?? '';
 
                   if (messages.isEmpty) {
-                    return Center(
+                    return _pullable(Center(
                       child: Text('No messages yet'),
-                    );
+                    ));
                   }
 
-                  return ListView.builder(
+                  return Refreshable(
+                    onRefresh: _refresh,
+                    child: ListView.builder(
+                    physics: Refreshable.physics,
                     padding: EdgeInsets.symmetric(horizontal: 4.pW, vertical: 2.pH),
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
@@ -153,6 +176,7 @@ class _SupportMessagesState extends State<SupportMessages> {
                         userInitials: '${firstName.isNotEmpty ? firstName[0].toUpperCase() : ''}${lastName.isNotEmpty ? lastName[0].toUpperCase() : ''}',
                       );
                     },
+                  ),
                   );
                 },
               ),
