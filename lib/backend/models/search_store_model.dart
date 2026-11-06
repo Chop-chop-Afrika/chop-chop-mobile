@@ -5,6 +5,7 @@ class SearchStoreModel {
   int? currentPage;
   int? totalPages;
   bool? hasNextPage;
+  int? nextPage;
 
   SearchStoreModel({this.status, this.message, this.data});
 
@@ -27,6 +28,7 @@ class SearchStoreModel {
       currentPage = (payload['currentPage'] as num?)?.toInt();
       totalPages = (payload['totalPages'] as num?)?.toInt();
       hasNextPage = payload['hasNextPage'] ?? false;
+      nextPage = (payload['nextPage'] as num?)?.toInt();
     }
   }
 

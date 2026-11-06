@@ -55,8 +55,62 @@ class StoreProvider with ChangeNotifier{
   List<ActivePackageList> activePackage = [];
   List<StoreModelData> searchStores = [];
   List<SearchProductData> searchProducts = [];
+
+  // Search pagination. /user/search takes `page` and `pageSize` (it is in the
+  // Swagger), but the client used to send neither, so a search only ever
+  // showed its first ten results however many there were - and the models
+  // have been parsing currentPage/hasNextPage the whole time with nothing
+  // reading them.
+  // Each type keeps its own cursor: a query can run out of stores long
+  // before it runs out of products, and /user/search has to be told which of
+  // the two it is looking for - there is no "both".
+  int storeSearchPage = 1;
+  int productSearchPage = 1;
+  bool hasNextStoreSearchPage = false;
+  bool hasNextProductSearchPage = false;
+  bool isLoadingMoreSearch = false;
+  String _searchQuery = '';
+
+  /// Whether either half of the current search has more to give.
+  bool get hasNextSearchPage =>
+      hasNextStoreSearchPage || hasNextProductSearchPage;
+
+  /// The search now on screen found nothing of either kind.
+  bool get searchFoundNothing =>
+      searchStores.isEmpty && searchProducts.isEmpty;
+
   StoreInformationModel? storeInformation;
 
+
+  /// True while [loadRestOfStores] is working through the remaining pages of
+  /// the nearby-vendors list.
+  bool loadingWholeStoreList = false;
+
+  /// Pulls every page of the vendor list that has not been fetched yet.
+  ///
+  /// Same reason as [loadRestOfStoreDetail]: searching this list is done in
+  /// the app, because /user/search is not scoped by type or by location, so
+  /// it would answer with supermarkets that cannot deliver to this address
+  /// and with restaurants on a supermarket screen. Filtering what is already
+  /// loaded keeps that scoping, but only once the whole list is here.
+  Future<void> loadRestOfStores(
+      String type, String latitude, String longitude) async {
+    if (loadingWholeStoreList || !hasNextStorePage) return;
+    loadingWholeStoreList = true;
+    notifyListeners();
+    try {
+      while (hasNextStorePage) {
+        final int before = allStoresList.length;
+        await fetchStores(type, latitude, longitude, loadMore: true);
+        // A page that adds nothing means there is nothing more to come,
+        // whatever hasNextPage claims.
+        if (allStoresList.length == before) break;
+      }
+    } finally {
+      loadingWholeStoreList = false;
+      notifyListeners();
+    }
+  }
 
   Future<void> fetchStores(String type,String latitude,String longitude, {bool loadMore = false}) async {
     if (loadMore && (isLoadingMoreStores || !hasNextStorePage)) return;
@@ -202,6 +256,35 @@ class StoreProvider with ChangeNotifier{
     currentStoreDetailPage = 1;
     hasNextStoreDetailPage = true;
     notifyListeners();
+  }
+
+  /// True while [loadRestOfStoreDetail] is working through the remaining
+  /// pages of a vendor's menu.
+  bool loadingWholeMenu = false;
+
+  /// Pulls every page of a vendor's menu that has not been fetched yet.
+  ///
+  /// Searching within one vendor has to be done here in the app, because
+  /// /user/search takes only `query` and `type` - there is no storeId to
+  /// narrow it by. Filtering a half-loaded menu would quietly miss matches,
+  /// so the rest of it is fetched before the filter is applied.
+  Future<void> loadRestOfStoreDetail(String storeId, String? category) async {
+    if (loadingWholeMenu || !hasNextStoreDetailPage) return;
+    loadingWholeMenu = true;
+    notifyListeners();
+    try {
+      while (hasNextStoreDetailPage) {
+        final int before = getStoreDetailList.length;
+        await fetchStoreDetail(storeId, category, loadMore: true);
+        // A page that adds nothing means there is nothing more to come,
+        // whatever hasNextPage claims. Without this a server that always
+        // answers true would spin here forever.
+        if (getStoreDetailList.length == before) break;
+      }
+    } finally {
+      loadingWholeMenu = false;
+      notifyListeners();
+    }
   }
 
   Future<void> fetchStoreDetail(String storeId,String? category, {bool loadMore = false}) async {
@@ -517,27 +600,107 @@ class StoreProvider with ChangeNotifier{
   void clearSearchResults() {
     searchStores = [];
     searchProducts = [];
+    storeSearchPage = 1;
+    productSearchPage = 1;
+    hasNextStoreSearchPage = false;
+    hasNextProductSearchPage = false;
+    isLoadingMoreSearch = false;
+    loadingSearch = false;
+    _searchQuery = '';
     notifyListeners();
   }
 
-  Future<void> searchProductsAndStores(String type, String search) async {
-    loadingSearch = true;
-    notifyListeners();
-    // Clearing the field used to fire a search with an empty query, whose
-    // response carries no `data` — the old `data!` then threw "Null check
-    // operator used on a null value". Nothing to search for means nothing to
-    // show, so clear locally and skip the request entirely.
+  /// Fetches the next page of whatever is currently on screen. The query is
+  /// remembered from the last search so the list does not have to hand it
+  /// back.
+  Future<void> loadMoreSearchResults() =>
+      searchEverything(_searchQuery, loadMore: true);
+
+  /// Searches stores and products together.
+  ///
+  /// /user/search takes a required `type` of either "stores" or "products",
+  /// so it cannot answer for both at once - but nothing stops the app asking
+  /// it twice. The two run side by side and land in their own lists, which
+  /// is what lets the search screen be one field instead of two tabs.
+  Future<void> searchEverything(String search, {bool loadMore = false}) async {
     final String query = search.trim();
     if (query.isEmpty) {
       clearSearchResults();
       return;
     }
 
+    if (loadMore) {
+      if (isLoadingMoreSearch || !hasNextSearchPage) return;
+      isLoadingMoreSearch = true;
+    } else {
+      storeSearchPage = 1;
+      productSearchPage = 1;
+      hasNextStoreSearchPage = false;
+      hasNextProductSearchPage = false;
+      searchStores = [];
+      searchProducts = [];
+      loadingSearch = true;
+    }
+    _searchQuery = query;
+    notifyListeners();
+
+    try {
+      // On a first search both halves go out. Loading more only asks the
+      // half that still has pages left.
+      await Future.wait(<Future<void>>[
+        if (!loadMore || hasNextStoreSearchPage)
+          searchProductsAndStores('stores', query, loadMore: loadMore),
+        if (!loadMore || hasNextProductSearchPage)
+          searchProductsAndStores('products', query, loadMore: loadMore),
+      ]);
+    } finally {
+      loadingSearch = false;
+      isLoadingMoreSearch = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> searchProductsAndStores(String type, String search,
+      {bool loadMore = false}) async {
+    // Clearing the field used to fire a search with an empty query, whose
+    // response carries no `data` — the old `data!` then threw "Null check
+    // operator used on a null value". Nothing to search for means nothing to
+    // show, so clear locally and skip the request entirely.
+    //
+    // This check also has to come before `loadingSearch` is raised. It used
+    // to sit after, and returning here skipped the try/finally that puts the
+    // flag back down, so clearing the field left the spinner up for good.
+    final String query = search.trim();
+    if (query.isEmpty) {
+      clearSearchResults();
+      return;
+    }
+
+    final bool products = type == 'products';
+    if (loadMore &&
+        !(products ? hasNextProductSearchPage : hasNextStoreSearchPage)) {
+      return;
+    }
+    if (!loadMore) {
+      // A new query starts again at page one and keeps none of the last
+      // one's results.
+      if (products) {
+        productSearchPage = 1;
+        hasNextProductSearchPage = false;
+        searchProducts = [];
+      } else {
+        storeSearchPage = 1;
+        hasNextStoreSearchPage = false;
+        searchStores = [];
+      }
+    }
+    _searchQuery = query;
+
     SharedPreferences prefs = await SharedPreferences.getInstance();
     dynamic jsonResponse;
     try {
       final String url =
-          "${Env.BACKEND_URL}/user/search?query=${Uri.encodeQueryComponent(query)}&type=$type";
+          "${Env.BACKEND_URL}/user/search?query=${Uri.encodeQueryComponent(query)}&type=$type&page=${products ? productSearchPage : storeSearchPage}&pageSize=10";
       final response = await apiClient.get(
         Uri.parse(url),
         headers: {
@@ -554,10 +717,14 @@ class StoreProvider with ChangeNotifier{
         // rather than throwing.
         if(type == 'products'){
           final details = SearchProductModel.fromJson(jsonResponse);
-          searchProducts = details.data ?? [];
+          searchProducts.addAll(details.data ?? []);
+          hasNextProductSearchPage = details.hasNextPage ?? false;
+          productSearchPage = details.nextPage ?? productSearchPage + 1;
         }else{
           final details = SearchStoreModel.fromJson(jsonResponse);
-          searchStores = details.data ?? [];
+          searchStores.addAll(details.data ?? []);
+          hasNextStoreSearchPage = details.hasNextPage ?? false;
+          storeSearchPage = details.nextPage ?? storeSearchPage + 1;
         }
 
         notifyListeners();
@@ -574,7 +741,11 @@ class StoreProvider with ChangeNotifier{
       print('Caught error: $errorMessage');
       notifyListeners();
     } finally {
-      loadingSearch = false;
+      if (loadMore) {
+        isLoadingMoreSearch = false;
+      } else {
+        loadingSearch = false;
+      }
       notifyListeners();
     }
   }
@@ -712,6 +883,12 @@ class StoreProvider with ChangeNotifier{
     activePackage = [];
     searchStores = [];
     searchProducts = [];
+    storeSearchPage = 1;
+    productSearchPage = 1;
+    hasNextStoreSearchPage = false;
+    hasNextProductSearchPage = false;
+    isLoadingMoreSearch = false;
+    _searchQuery = '';
     storeInformation = null;
     notifyListeners();
   }

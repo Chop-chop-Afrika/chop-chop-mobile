@@ -87,6 +87,10 @@ class Record {
   String? createdAt;
   String? updatedAt;
   int? status;
+  // The stores endpoint returns these; nothing was reading them, so the list
+  // fell back to printing `status` beside a star.
+  double? averageRating;
+  int? totalRatings;
   double? distance;
 
   Record(
@@ -106,6 +110,8 @@ class Record {
         this.createdAt,
         this.updatedAt,
         this.status,
+        this.averageRating,
+        this.totalRatings,
         this.distance});
 
   Record.fromJson(Map<String, dynamic> json) {
@@ -125,6 +131,8 @@ class Record {
     createdAt = json['createdAt'];
     updatedAt = json['updatedAt'];
     status = json['status'];
+    averageRating = (json['averageRating'] as num?)?.toDouble();
+    totalRatings = json['totalRatings'];
     distance = (json['distance'] as num?)?.toDouble();
   }
 

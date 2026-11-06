@@ -1,6 +1,8 @@
 import 'package:chop_chop_africa/Pages/home%20page/home%20direct/vendor_detail.dart';
-import 'package:chop_chop_africa/Pages/home%20page/order_direct/orders.dart';
 import 'package:chop_chop_africa/backend/store_provider.dart';
+import 'package:chop_chop_africa/custom%20widgets/pressable.dart';
+import 'package:chop_chop_africa/utility/money.dart';
+import 'package:chop_chop_africa/utility/typography.dart';
 import 'package:chop_chop_africa/utility/sizes.dart';
 import 'package:chop_chop_africa/utility/uiutils.dart';
 import 'package:flutter/material.dart';
@@ -13,9 +15,16 @@ import 'package:intl/intl.dart';
 import '../../../backend/models/search_product_model.dart';
 import '../../../utility/iacolors.dart';
 
+/// The products half of a search result, rendered inline.
+///
+/// This used to be a whole screen of its own behind a "Products" tab.
+/// Stores and products are searched together now, so [SearchPage] owns the
+/// scrolling, the loading and empty states and the cart bar, and this lays
+/// out the tiles it is given.
 class SearchProducts extends StatefulWidget {
+  final List<SearchProductData> items;
 
-  const SearchProducts({super.key,});
+  const SearchProducts({super.key, required this.items});
 
   @override
   State<SearchProducts> createState() => _SearchProductsState();
@@ -29,132 +38,93 @@ class _SearchProductsState extends State<SearchProducts> {
 
   @override
   Widget build(BuildContext context) {
+    final store = Provider.of<StoreProvider>(context, listen: false);
+    final itemDetails = widget.items;
     final formatter = NumberFormat("#,##0.00", "en_US");
-    return Consumer<StoreProvider>(
-        builder: (context,store,child) {
-          final itemDetails = store.searchProducts;
-
-          if (store.loadingSearch && itemDetails.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (itemDetails.isEmpty) {
-            return Center(child:Text('Search For Products',
-              style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400,
-                  color: IAColors.grey
-              ),
-            ));
-          }
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 15.0,horizontal: 20),
-            child: Stack(
+    return StaggeredGridView.countBuilder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        padding: EdgeInsets.zero,
+        itemCount: itemDetails.length,
+        crossAxisCount: 2,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 12,
+        itemBuilder: (context, index) {
+          final item = itemDetails[index];
+          return Pressable(
+            onTap: () {
+              showModalBottomSheet(
+                  isScrollControlled: true,
+                  backgroundColor: Colors.white,
+                  context: context,
+                  builder: (context) {
+                    return _bottomModalWidget(itemDetails, index, formatter, store);
+                  }).whenComplete(() {
+                setState(() {
+                  _amount = 1;
+                  _selected = 0;
+                  _selectedVariant = null;
+                });
+              });
+            },
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                StaggeredGridView.countBuilder(
-                    itemCount:itemDetails.length +
-                        (store.isLoadingMoreStoreDetail ? 1 : 0),
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 12,
-                    itemBuilder: (context, index){
-                      if (index == itemDetails.length) {
-                        return const Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Center(child: CircularProgressIndicator()),
-                        );
-                      }
-                      return GestureDetector(
-                        onTap: (){
-                          showModalBottomSheet(
-                              isScrollControlled: true,
-                              backgroundColor: Colors.white,
-
-                              context: context,
-                              builder: (context){
-                                return _bottomModalWidget(itemDetails, index, formatter, store);
-                              }
-                          ).whenComplete((){
-                            setState(() {
-                              _amount = 1;
-                              _selected = 0;
-                              _selectedVariant = null;
-                            });
-                          });
-                        },
-                        child: Column(
-                          children: [
-                            Container(
-                              height: 16.pH,
-                              width: 50.pW,
-                              decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(8),
-                                  image: DecorationImage(
-                                      image: NetworkImage(itemDetails[index].banner??placeHolderLogo),
-                                      fit: BoxFit.cover
-                                  )
-                              ),
-                            ),
-                            1.gap,
-                           Row(
-                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                             children: [
-                               Column(
-                                 crossAxisAlignment: CrossAxisAlignment.start,
-                                 children: [
-                                   UiUtils.subTitles(itemDetails[index].name??'', 15),
-                                   UiUtils.subTitles('₦${itemDetails[index].price}', 13),
-                                 ],
-                               ),
-                               IconButton(
-                                   onPressed: (){
-                                     Navigator.push(context, MaterialPageRoute(builder: (context){
-                                       return VendorDetail(
-                                         storeId: itemDetails[index].stores!.id!,
-                                         storeName: itemDetails[index].stores!.name!,
-                                         deliveryTime: itemDetails[index].stores!.deliveryTime!,
-                                         businessTime: '${itemDetails[index].stores!.openTime} - ${itemDetails[index].stores!.closeTime}',);
-                                     }));
-                                   },
-                                   icon: SvgPicture.asset('assets/svg/Home 1.svg',height: 21,)
-                               )
-                             ],
-                           )
-                          ],
-                        ),
-                      );
-                    },
-                    staggeredTileBuilder: (context) => const StaggeredTile.fit(1)
+                // Was a raw NetworkImage falling back to a stock chef logo
+                // from freesvg.org, with no handling for a failed load.
+                NetworkThumb(
+                  url: item.banner,
+                  height: 16.pH,
+                  width: double.infinity,
                 ),
-                store.getCartItems?.data?.carts?.isNotEmpty != null?
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: SizedBox(
-                    height: 10.pH,
-                    width: 100.pW,
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 20.0),
-                      child: ElevatedButton(
-                          onPressed: (){
-                            Navigator.push(context, MaterialPageRoute(builder: (context){
-                              return Orders(index: 0,);
-                            }));
-                          },
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('Proceed to order ${store.getCartItems?.data?.itemCount ?? 0} item'),
-                              Text('₦${formatter.format(store.getCartItems?.data?.grandTotal)}')
-                            ],
-                          )
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // One line only, so a long name cannot make its
+                          // tile taller than the one beside it.
+                          Text(
+                            item.name ?? '',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            softWrap: false,
+                            style: IAText.subtitle(),
+                          ),
+                          const SizedBox(height: 4),
+                          // Was '₦${item.price}', so five-figure prices came
+                          // out as 12550 with no separator.
+                          Text(naira(item.price),
+                              style: IAText.label(color: IAColors.darkGrey)),
+                        ],
                       ),
                     ),
-                  ),
-                ):Container()
+                    if (item.stores?.id != null)
+                      IconButton(
+                          tooltip: 'Open ${item.stores?.name ?? 'store'}',
+                          onPressed: () {
+                            Navigator.push(context,
+                                MaterialPageRoute(builder: (context) {
+                              return VendorDetail(
+                                storeId: item.stores!.id!,
+                                storeName: item.stores!.name ?? '',
+                                deliveryTime: item.stores!.deliveryTime ?? '',
+                                businessTime:
+                                    '${item.stores!.openTime} - ${item.stores!.closeTime}',
+                              );
+                            }));
+                          },
+                          icon: SvgPicture.asset('assets/svg/Home 1.svg',
+                              height: 21))
+                  ],
+                )
               ],
             ),
           );
-        }
-    );
+        },
+        staggeredTileBuilder: (context) => const StaggeredTile.fit(1));
   }
 
   Widget _level(IconData icon, GestureTapCallback callBack, {required bool isSelected}) {

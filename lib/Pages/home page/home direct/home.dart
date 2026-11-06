@@ -8,8 +8,10 @@ import 'package:chop_chop_africa/backend/profile_provider.dart';
 import 'package:chop_chop_africa/backend/store_provider.dart';
 import 'package:chop_chop_africa/utility/iacolors.dart';
 import 'package:chop_chop_africa/utility/sizes.dart';
-import 'package:chop_chop_africa/utility/uiutils.dart';
 import 'package:chop_chop_africa/custom%20widgets/async_content.dart';
+import 'package:chop_chop_africa/custom%20widgets/pressable.dart';
+import 'package:chop_chop_africa/custom%20widgets/refreshable.dart';
+import 'package:chop_chop_africa/utility/typography.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
@@ -28,7 +30,7 @@ class _HomeState extends State<Home> {
   int _activeIndex = 0;
   String placeHolderLogo = 'https://freesvg.org/img/chef-restaurant-logo-publicdomainvectors.png';
 
-List<String> _carouselImages = [
+final List<String> _carouselImages = [
   'https://images.unsplash.com/photo-1682778418768-16081e4470a1?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8cmVzdGF1cmFudCUyMGJhY2tncm91bmR8ZW58MHx8MHx8fDA%3D&fm=jpg&q=60&w=3000',
 'https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg?cs=srgb&dl=pexels-pixabay-262978.jpg&fm=jpg'
 ];
@@ -41,131 +43,84 @@ List<String> _carouselImages = [
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final profile = Provider.of<ProfileProvider>(context,listen: false);
     final profileInfo = profile.getAllProfileInfo;
-    String cutUnwantedPart(String name) {
-      if (name.length > 25) {
-        return name.trim().replaceRange(25, null, '...');
-      }
-      return name;
-    }
     return Consumer<StoreProvider>(
       builder: (context, stores, child) {
         return Scaffold(
           appBar: AppBar(
             centerTitle: false,
             automaticallyImplyLeading: false,
-            title: Text('Hello ${profileInfo?.data?.firstName??''} 👋',
-              style: TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14
-              ),
-            ),
-            actions: [
-              Consumer<AddressProvider>(
-                builder: (context,address,child) {
-                  return Text(
-                        cutUnwantedPart(address.defaultAddress?.address??'Loading...'),
-                        style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 14
-                        ),
-                      );
-                }
-              ),
-              TextButton(
-                  onPressed: (){
-                    Navigator.push(context, MaterialPageRoute(builder: (context){
-                      return AddressSearchBar(type: 'update', defaultAddress: true,);
-                    }));
-                  },
-                  child: Text('Change',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w300,
-                    decoration: TextDecoration.underline,
-                      decorationColor: IAColors.primary,
-                    color: IAColors.primary
-                  ),
-                  )
-              )
-            ],
+            toolbarHeight: 78,
+            titleSpacing: 20,
+            // The greeting, the address and Change used to share one row as a
+            // title plus two actions, which left them jammed against each
+            // other with nowhere for a long address to go.
+            title: _greeting(profileInfo?.data?.firstName),
           ),
-          body: Padding(
+          body: Refreshable(
+            onRefresh: _refresh,
+            child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
             child: SingleChildScrollView(
+              physics: Refreshable.physics,
               child: Column(
                 children: [
-                  SizedBox(
-                    height:11.pH,
-                    child: TextFormField(
-                      onTap: (){
-                        Navigator.push(context, MaterialPageRoute(builder: (context){
-                          return SearchPage();
-                        }));
-                      },
-                      readOnly: true,
-                      validator: (v){
-                        if(v!.isEmpty){
-                          return 'Field Must Not be empty';
-                        }
-                        return null;
-                      },
-                      onChanged: (v){
-                      },
-                      style: theme.textTheme.bodySmall,
-                      decoration: InputDecoration(
-                          prefixIcon: Padding(
-                            padding: const EdgeInsets.all(12.0),
-                            child: SvgPicture.asset('assets/svg/search-normal.svg',),
-                          ),
-                          filled: true,
-                          fillColor: Colors.grey.shade200,
-                          contentPadding: EdgeInsets.only(top: 3,left: 10),
-                          errorStyle: TextStyle(
-                              fontSize: 14
-                          ),
-                          hintText: 'Search',
-                          hintStyle: TextStyle(
-                              height: 2,
-                              fontSize: 14,
-                            fontWeight: FontWeight.w800
-                          ),
-                          helperText: ''
+                  1.gap,
+                  TextFormField(
+                    onTap: (){
+                      Navigator.push(context, MaterialPageRoute(builder: (context){
+                        return SearchPage();
+                      }));
+                    },
+                    readOnly: true,
+                    style: IAText.body(),
+                    decoration: InputDecoration(
+                      prefixIcon: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: SvgPicture.asset('assets/svg/search-normal.svg'),
                       ),
+                      filled: true,
+                      fillColor: IAColors.fieldFill,
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                      hintText: 'Search for food, vendors and items',
+                      hintStyle: IAText.body(color: IAColors.grey),
                     ),
                   ),
+                  2.gap,
 
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      GestureDetector(
+                      Pressable(
                         onTap: (){
                           Navigator.push(context, MaterialPageRoute(builder: (context){
                             return Vendors(type: "SUPER_MARKET",);
                           }));
                         },
-                          child: _topContainers('hugeicons_discount-tag-02.png', Color(0xffFDF2DF), 'Supermarket')),
-                      GestureDetector(
+                        child: _topContainers('hugeicons_discount-tag-02.png', Color(0xffFDF2DF), 'Supermarket'),
+                      ),
+                      Pressable(
                         onTap: (){
                           Navigator.push(context, MaterialPageRoute(builder: (context){
                             return Vendors(type: "RESTAURANT",);
                           }));
                         },
-                          child: _topContainers('Quick Options.png', Color(0xffFFE3D9), 'Vendors')
+                        child: _topContainers('Quick Options.png', Color(0xffFFE3D9), 'Vendors'),
                       ),
-                      GestureDetector(
+                      Pressable(
                         onTap: (){
                           Navigator.push(context, MaterialPageRoute(builder: (context){
                             return EasyPackageDelivery();
                           }));
                         },
-                          child: _topContainers('Quick Options (2).png', Color(0xffE9FFF5), 'Send Packages'))
+                        child: _topContainers('Quick Options (2).png', Color(0xffE9FFF5), 'Send Packages'),
+                      )
                     ],
                   ),
                   2.gap,
-                  UiUtils.subTitles('Top Vendors', 17),
+                  _sectionTitle('Top Vendors'),
                   0.5.gap,
                   _horizontalListView(stores.getTopVendors,
                       loading: stores.loadingTopVendors),
@@ -192,8 +147,9 @@ List<String> _carouselImages = [
                       : placeHolderLogo;
                   return Padding(
                     padding: const EdgeInsets.only(top: 8.0,right: 8.0,bottom: 8.0),
-                    child: GestureDetector(
+                    child: Pressable(
                       onTap: (){
+                        if (index >= vendors.length) return;
                         Navigator.push(context, MaterialPageRoute(builder: (context){
                           return VendorDetail(
                             storeId: vendors[index].id!,
@@ -202,15 +158,10 @@ List<String> _carouselImages = [
                             businessTime: '${vendors[index].openTime} - ${vendors[index].closeTime}',);
                         }));
                       },
-                      child: Container(
+                      child: NetworkThumb(
+                        url: imageUrl,
                         width: double.infinity,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(15),
-                          image: DecorationImage(
-                              image: NetworkImage(imageUrl),
-                            fit: BoxFit.cover
-                          )
-                        ),
+                        radius: BorderRadius.circular(15),
                       ),
                     ),
                   );
@@ -219,12 +170,12 @@ List<String> _carouselImages = [
                   1.gap,
                   buildIndicator(),
                  2.gap,
-                  UiUtils.subTitles('Top Stores', 17),
+                  _sectionTitle('Top Stores'),
                   0.5.gap,
                   _horizontalListView(stores.getTopStores,
                       loading: stores.loadingTopStores),
                   2.gap,
-                  UiUtils.subTitles('Recommended', 17),
+                  _sectionTitle('Recommended'),
                   1.gap,
                   SizedBox(
                     height: 25.pH,
@@ -234,15 +185,10 @@ List<String> _carouselImages = [
                         itemBuilder: (context, index){
                         return Padding(
                           padding: const EdgeInsets.only(right: 15.0),
-                          child: Container(
+                          child: NetworkThumb(
+                            url: _carouselImages[index],
                             width: 40.pW,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                                image: DecorationImage(
-                                    image: NetworkImage(_carouselImages[index],),
-                                    fit: BoxFit.cover
-                                )
-                            ),
+                            radius: BorderRadius.circular(12),
                           ),
                         );
                         }
@@ -252,10 +198,102 @@ List<String> _carouselImages = [
               ),
             ),
           ),
+          ),
         );
       }
     );
   }
+
+  /// Everything the screen shows, re-fetched. The two store calls need
+  /// coordinates, so they are skipped when there is no default address rather
+  /// than taking the whole refresh down.
+  Future<void> _refresh() async {
+    final profile = Provider.of<ProfileProvider>(context, listen: false);
+    final address = Provider.of<AddressProvider>(context, listen: false);
+    final stores = Provider.of<StoreProvider>(context, listen: false);
+
+    await Future.wait([
+      profile.getProfile(),
+      address.getAllAddresses(),
+    ]);
+    if (!mounted) return;
+
+    final here = address.defaultAddress;
+    await Future.wait([
+      if (here != null)
+        stores.fetchTopStores(
+            here.latitude.toString(), here.longitude.toString()),
+      if (here != null)
+        stores.fetchTopVendors('RESTAURANT', here.latitude.toString(),
+            here.longitude.toString()),
+    ]);
+  }
+  Widget _sectionTitle(String text) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Text(text, style: IAText.title()),
+    );
+  }
+
+  /// Two lines with room to breathe: who you are, then where you are.
+  Widget _greeting(String? firstName) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Hello ${firstName ?? ''} 👋'.replaceAll('  ', ' '),
+          style: IAText.title(),
+        ),
+        const SizedBox(height: 4),
+        Consumer<AddressProvider>(
+          builder: (context, address, child) {
+            final line = address.defaultAddress?.address;
+            return Row(
+              children: [
+                Icon(Icons.location_on_outlined,
+                    size: 15, color: IAColors.darkGrey),
+                const SizedBox(width: 3),
+                // Expanded plus ellipsis, so the address gives way on a narrow
+                // screen instead of being cut at a fixed character count.
+                Expanded(
+                  child: Text(
+                    line ?? 'Setting your address…',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: IAText.caption(),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (context) {
+                      return AddressSearchBar(
+                          type: 'update', defaultAddress: true);
+                    }));
+                  },
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Text(
+                      'Change',
+                      style: IAText.caption(color: IAColors.primary).copyWith(
+                        fontWeight: FontWeight.w600,
+                        decoration: TextDecoration.underline,
+                        decorationColor: IAColors.primary,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+
   Widget buildIndicator(){
     return AnimatedSmoothIndicator(
       activeIndex: _activeIndex,
@@ -264,7 +302,7 @@ List<String> _carouselImages = [
           dotHeight: 9,
           dotWidth: 9,
           activeDotColor: IAColors.primary,
-          dotColor: IAColors.primary.withOpacity(0.2)
+          dotColor: IAColors.primary.withValues(alpha: 0.2)
       ),
     );
   }
@@ -282,11 +320,13 @@ List<String> _carouselImages = [
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Image.asset('assets/images/$image',height: 13.pW,),
-            0.5.gap,
-            Text(title,
-            style: TextStyle(
-              fontSize: 12
-            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: IAText.caption(color: IAColors.black),
             ),
           ],
         ),
@@ -316,21 +356,15 @@ List<String> _carouselImages = [
       );
     }
     return SizedBox(
-      height: 12.pH,
+      height: 13.pH,
       child: ListView.builder(
           scrollDirection: Axis.horizontal,
           itemCount: allItems.length,
           itemBuilder: (context, index){
-            String cutUnwantedPart(String name) {
-              if (name.length > 10) {
-                return name.trim().replaceRange(10, null, '...');
-              }
-              return name;
-            }
             final allStores = allItems[index];
             return Padding(
               padding:  EdgeInsets.only(right: 5.pW),
-              child: GestureDetector(
+              child: Pressable(
                 onTap: (){
                   Navigator.push(context, MaterialPageRoute(builder: (context){
                     return VendorDetail(
@@ -342,15 +376,23 @@ List<String> _carouselImages = [
                 },
                 child: Column(
                   children: [
-                    CircleAvatar(
-                      radius: 6.pW,
-                      backgroundImage: NetworkImage(allStores.logo??placeHolderLogo,),
+                    NetworkThumb(
+                      url: allStores.logo,
+                      height: 14.pW,
+                      width: 14.pW,
+                      radius: BorderRadius.circular(7.pW),
                     ),
-                    1.gap,
-                    Text(cutUnwantedPart(allStores.name??''),
-                      style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13
+                    const SizedBox(height: 8),
+                    // A fixed 10-character chop cut names mid-word with no
+                    // regard for how wide the tile actually is.
+                    SizedBox(
+                      width: 20.pW,
+                      child: Text(
+                        allStores.name ?? '',
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: IAText.label(weight: FontWeight.w600),
                       ),
                     )
                   ],

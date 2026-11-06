@@ -3,6 +3,10 @@ import 'package:chop_chop_africa/backend/store_provider.dart';
 import 'package:chop_chop_africa/utility/sizes.dart';
 import 'package:chop_chop_africa/utility/uiutils.dart';
 import 'package:chop_chop_africa/custom%20widgets/async_content.dart';
+import 'package:chop_chop_africa/custom%20widgets/pressable.dart';
+import 'package:chop_chop_africa/custom%20widgets/refreshable.dart';
+import 'package:chop_chop_africa/utility/money.dart';
+import 'package:chop_chop_africa/utility/typography.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:provider/provider.dart';
@@ -16,16 +20,16 @@ import '../../../utility/iacolors.dart';
 class VendorGrid extends StatefulWidget {
   final String? category;
   final String? storeId;
-  const VendorGrid({super.key, this.category, this.storeId,});
+  /// Filters the menu down to matching items. Empty shows everything.
+  final String query;
+  const VendorGrid({super.key, this.category, this.storeId, this.query = '',});
 
   @override
   State<VendorGrid> createState() => _VendorGridState();
 }
 
 class _VendorGridState extends State<VendorGrid> {
-  String placeHolderLogo = 'https://freesvg.org/img/chef-restaurant-logo-publicdomainvectors.png';
   int _amount = 1;
-  int _selected = 0;
   Variants? _selectedVariant;
 
   final ScrollController _scrollController = ScrollController();
@@ -58,30 +62,60 @@ class _VendorGridState extends State<VendorGrid> {
       });
     });
   }
+  /// A filter over a half-loaded menu quietly misses matches, so the first
+  /// keystroke pulls the rest of this tab's pages. It has to be this widget
+  /// that asks, because the category is what decides which list is being
+  /// paginated.
+  @override
+  void didUpdateWidget(covariant VendorGrid oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final bool wasSearching = oldWidget.query.trim().isNotEmpty;
+    final bool nowSearching = widget.query.trim().isNotEmpty;
+    if (nowSearching && !wasSearching) {
+      Provider.of<StoreProvider>(context, listen: false)
+          .loadRestOfStoreDetail(widget.storeId!, widget.category ?? "");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final formatter = NumberFormat("#,##0.00", "en_US");
     return Consumer<StoreProvider>(
       builder: (context,store,child) {
-        final itemDetails = store.getStoreDetailList;
+        final itemDetails = _matching(store.getStoreDetailList);
+        final bool searching = widget.query.trim().isNotEmpty;
 
         // This said "No items" while the first fetch was still running, which
         // read as an empty store rather than one that had not loaded.
-        return AsyncContent(
-          loading: store.loadingStoreDetail && itemDetails.isEmpty,
+        return Refreshable(
+          onRefresh: _refresh,
+          child: AsyncContent(
+          // Pulling the rest of the menu for a search is a wait like any
+          // other, so it gets the same placeholder a first load does.
+          loading: (store.loadingStoreDetail || store.loadingWholeMenu) &&
+              itemDetails.isEmpty,
           isEmpty: itemDetails.isEmpty,
-          emptyTitle: 'Nothing on the menu yet',
-          emptyMessage: 'This vendor has not added any items for this category.',
-          emptyIcon: Icons.restaurant_menu_outlined,
+          emptyTitle: searching
+              ? 'Nothing matches "${widget.query.trim()}"'
+              : 'Nothing on the menu yet',
+          emptyMessage: searching
+              ? 'Try a different word, or clear the search to see the whole menu.'
+              : 'This vendor has not added any items for this category.',
+          emptyIcon:
+              searching ? Icons.search_off : Icons.restaurant_menu_outlined,
           loadingPlaceholder: const SkeletonList(count: 4, itemHeight: 140),
           builder: (context) => Padding(
           padding: const EdgeInsets.symmetric(vertical: 15.0,horizontal: 20),
           child: Stack(
             children: [
               StaggeredGridView.countBuilder(
+                  physics: Refreshable.physics,
                   controller: _scrollController,
-                  itemCount:itemDetails.length +
-                      (store.isLoadingMoreStoreDetail ? 1 : 0),
+                  itemCount: itemDetails.length +
+                      ((store.isLoadingMoreStoreDetail ||
+                              store.loadingWholeMenu)
+                          ? 1
+                          : 0),
                   crossAxisCount: 2,
                   crossAxisSpacing: 8,
                   mainAxisSpacing: 12,
@@ -92,12 +126,16 @@ class _VendorGridState extends State<VendorGrid> {
                         child: Center(child: CircularProgressIndicator()),
                       );
                     }
-                    return GestureDetector(
+                    return Pressable(
                       onTap: (){
                         showModalBottomSheet(
                             isScrollControlled: true,
+                            useSafeArea: true,
                             backgroundColor: Colors.white,
-
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(
+                                  top: Radius.circular(20)),
+                            ),
                             context: context,
                             builder: (context){
                               return _bottomModalWidget(itemDetails, index, formatter, store);
@@ -105,27 +143,34 @@ class _VendorGridState extends State<VendorGrid> {
                         ).whenComplete((){
                           setState(() {
                             _amount = 1;
-                            _selected = 0;
                             _selectedVariant = null;
                           });
                         });
                       },
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
+                          NetworkThumb(
+                            url: itemDetails[index].banner,
                             height: 16.pH,
-                            width: 50.pW,
-                            decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(8),
-                                image: DecorationImage(
-                                    image: NetworkImage(itemDetails[index].banner??placeHolderLogo),
-                                    fit: BoxFit.cover
-                                )
-                            ),
+                            width: double.infinity,
                           ),
-                          1.gap,
-                          UiUtils.subTitles(itemDetails[index].name??'', 15),
-                          UiUtils.subTitles('₦${itemDetails[index].price}', 13),
+                          const SizedBox(height: 10),
+                          // One line only. At two, a single long name made its
+                          // tile taller than the one beside it and knocked the
+                          // whole grid out of step.
+                          Text(
+                            itemDetails[index].name ?? '',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            softWrap: false,
+                            style: IAText.subtitle(),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            naira(itemDetails[index].price),
+                            style: IAText.label(color: IAColors.darkGrey),
+                          ),
                         ],
                       ),
                     );
@@ -133,73 +178,126 @@ class _VendorGridState extends State<VendorGrid> {
                   staggeredTileBuilder: (context) => const StaggeredTile.fit(1)
               ),
 
-              store.getCartItems!.data!.carts!.isNotEmpty?
+              // getCartItems is null until the first fetch lands and again
+              // after clearAllDetail, so this cannot be force-unwrapped.
               Align(
                 alignment: Alignment.bottomCenter,
-                child: SizedBox(
-                  height: 10.pH,
-                  width: 100.pW,
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 20.0),
-                    child: ElevatedButton(
-                        onPressed: (){
-                          Navigator.push(context, MaterialPageRoute(builder: (context){
-                            return Orders(index: 0,);
-                          }));
-                        },
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Proceed to order ${store.getCartItems?.data?.itemCount ?? 0} item'),
-                            Text('₦${formatter.format(store.getCartItems?.data?.grandTotal)}')
-                          ],
-                        )
+                child: AnimatedSlide(
+                  offset: _cartHasItems(store) ? Offset.zero : const Offset(0, 1.4),
+                  duration: const Duration(milliseconds: 240),
+                  curve: Curves.easeOutCubic,
+                  child: AnimatedOpacity(
+                    opacity: _cartHasItems(store) ? 1 : 0,
+                    duration: const Duration(milliseconds: 180),
+                    child: SizedBox(
+                      height: 10.pH,
+                      width: 100.pW,
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 20.0),
+                        child: ElevatedButton(
+                            onPressed: _cartHasItems(store) ? (){
+                              Navigator.push(context, MaterialPageRoute(builder: (context){
+                                return Orders(index: 0,);
+                              }));
+                            } : null,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    _cartItemLabel(store),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: IAText.body(
+                                        color: IAColors.white,
+                                        weight: FontWeight.w600),
+                                  ),
+                                ),
+                                Text(
+                                  naira(store.getCartItems?.data?.grandTotal),
+                                  style: IAText.body(
+                                      color: IAColors.white,
+                                      weight: FontWeight.w700),
+                                )
+                              ],
+                            )
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ):Container()
+              )
             ],
           ),
           ),
+        ),
         );
       }
     );
   }
 
-  Widget _level(IconData icon, GestureTapCallback callBack, {required bool isSelected}) {
-    return GestureDetector(
+  /// Case-insensitive, over name and description. The description is
+  /// included because that is the field /user/search itself matches products
+  /// on, so searching inside a vendor behaves the same way as searching
+  /// across all of them.
+  List<StoreDetailRecord> _matching(List<StoreDetailRecord> all) {
+    final String q = widget.query.trim().toLowerCase();
+    if (q.isEmpty) return all;
+    return all
+        .where((item) =>
+            (item.name ?? '').toLowerCase().contains(q) ||
+            (item.description ?? '').toLowerCase().contains(q))
+        .toList();
+  }
+
+  Future<void> _refresh() async {
+    final store = Provider.of<StoreProvider>(context, listen: false);
+    await Future.wait([
+      store.fetchStoreDetail(widget.storeId!, widget.category ?? ''),
+      store.fetchAllCartItems(),
+    ]);
+  }
+
+  bool _cartHasItems(StoreProvider store) =>
+      store.getCartItems?.data?.carts?.isNotEmpty ?? false;
+
+  String _cartItemLabel(StoreProvider store) {
+    final count = store.getCartItems?.data?.itemCount ?? 0;
+    return 'Proceed to order $count ${count == 1 ? 'item' : 'items'}';
+  }
+
+  /// A bordered square, matching the Figma. The old version latched orange on
+  /// whichever of the two you last pressed and stayed that way.
+  Widget _level(IconData icon, GestureTapCallback? callBack) {
+    final enabled = callBack != null;
+    return Pressable(
       onTap: callBack,
+      scale: 0.9,
       child: Container(
-        padding: EdgeInsets.all(4),
+        height: 34,
+        width: 34,
         decoration: BoxDecoration(
-          color: isSelected ? IAColors.primary : Colors.transparent, // highlight
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(
-            color: IAColors.lightGrey,
-          ),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: IAColors.lightGrey),
         ),
-        child: Icon(icon,size: 30,color: isSelected?IAColors.white:IAColors.dialogDark,),
+        child: Icon(
+          icon,
+          size: 20,
+          color: enabled ? IAColors.dialogDark : IAColors.lightGrey,
+        ),
       ),
     );
   }
 
-  Widget bottomNavDescriptions(String name, double? fontSize, FontWeight? fontWeight){
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0),
-          child: SizedBox(
-            width: 80.pW,
-            child: Text(name,
-              style: TextStyle(
-                  fontSize: fontSize,
-                  fontWeight: fontWeight
-              ),
-            ),
-          ),
-        ),
-      ],
+  /// Full-width and left-aligned. The fixed 80% width meant long names broke
+  /// out of the sheet rather than wrapping inside it.
+  Widget bottomNavDescriptions(String name, TextStyle style) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+      child: SizedBox(
+        width: double.infinity,
+        child: Text(name, style: style),
+      ),
     );
   }
 
@@ -208,7 +306,7 @@ class _VendorGridState extends State<VendorGrid> {
         builder: (context, setState) {
           num unitPrice = itemDetails[index].price;
           num totalPriceRaw = unitPrice * _amount;
-          String totalPrice = formatter.format(totalPriceRaw);
+          String totalPrice = naira(totalPriceRaw);
           final variants = itemDetails[index].variants ?? [];
           bool hasVariants = variants.isNotEmpty;
           Map<String, List<Variants>> grouped = {};
@@ -218,10 +316,15 @@ class _VendorGridState extends State<VendorGrid> {
           }
           num effectiveUnitPrice = _selectedVariant?.price ?? unitPrice;
           num variantPriceRaw = effectiveUnitPrice * _amount;
-          String variantPrice = formatter.format(variantPriceRaw);
+          String variantPrice = naira(variantPriceRaw);
 
+          // 110.pH is 759 logical pixels, taller than the viewport on a
+          // smaller phone, so the sheet's own contents used to overflow.
+          final maxSheet = MediaQuery.of(context).size.height * 0.88;
           return SizedBox(
-                  height:hasVariants?110.pH:80.pH,
+                  height: (hasVariants ? 110.pH : 80.pH)
+                      .clamp(0.0, maxSheet)
+                      .toDouble(),
                   child: Column(
                     children: [
                       // -------------------------------
@@ -234,20 +337,13 @@ class _VendorGridState extends State<VendorGrid> {
                               SliverToBoxAdapter(
                                 child: Column(
                                   children: [
-                                    Container(
+                                    NetworkThumb(
+                                      url: itemDetails[index].banner,
                                       width: double.infinity,
                                       height: 33.pH,
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.only(
-                                          topLeft: Radius.circular(20),
-                                          topRight: Radius.circular(20),
-                                        ),
-                                        image: DecorationImage(
-                                          image: NetworkImage(
-                                              itemDetails[index].banner ?? placeHolderLogo
-                                          ),
-                                          fit: BoxFit.cover,
-                                        ),
+                                      radius: const BorderRadius.only(
+                                        topLeft: Radius.circular(20),
+                                        topRight: Radius.circular(20),
                                       ),
                                     ),
                                   ],
@@ -258,21 +354,20 @@ class _VendorGridState extends State<VendorGrid> {
                           body: SingleChildScrollView(
                             child: Column(
                               children: [
-                                1.gap,
+                                const SizedBox(height: 18),
                                 bottomNavDescriptions(
-                                    itemDetails[index].name!,
-                                    21,
-                                    FontWeight.w800),
+                                    itemDetails[index].name ?? '',
+                                    IAText.display()),
+                                const SizedBox(height: 8),
                                 bottomNavDescriptions(
-                                    itemDetails[index].description!,
-                                    14,
-                                    FontWeight.w400),
-                                2.gap,
+                                    itemDetails[index].description ?? '',
+                                    IAText.body(color: IAColors.darkGrey)),
+                                const SizedBox(height: 14),
                                 bottomNavDescriptions(
-                                  hasVariants ? "₦$variantPrice" : "₦$totalPrice",
-                                  20,
-                                  FontWeight.w800,
+                                  hasVariants ? 'From $variantPrice' : totalPrice,
+                                  IAText.title(),
                                 ),
+                                const SizedBox(height: 6),
                                 if (hasVariants)
                                   for (String type in grouped.keys) ...[
                                     Padding(
@@ -286,17 +381,15 @@ class _VendorGridState extends State<VendorGrid> {
                                         child: Row(
                                           //crossAxisAlignment: CrossAxisAlignment.end,
                                           children: [
-                                            Text(type,
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.w600,
-                                                )),
-                                            SizedBox(width: 6),
+                                            Flexible(
+                                              child: Text(type,
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: IAText.subtitle()),
+                                            ),
+                                            const SizedBox(width: 6),
                                             Text("(Select 1)",
-                                                style: TextStyle(
-                                                  color: Colors.black,
-                                                  fontSize: 11,
-                                                ))
+                                                style: IAText.micro())
                                           ],
                                         ),
                                       ),
@@ -315,22 +408,19 @@ class _VendorGridState extends State<VendorGrid> {
                                               children: [
                                                 Text(
                                                   v.size ?? '',
-                                                  style: TextStyle(
-                                                    fontSize: 16,
-                                                    fontWeight: FontWeight.w700,
+                                                  style: IAText.subtitle(
                                                     color: (_selectedVariant != null && _selectedVariant!.id != v.id)
-                                                        ? Colors.grey // grey out
-                                                        : Colors.black,
+                                                        ? IAColors.grey
+                                                        : IAColors.black,
                                                   ),
                                                 ),
-                                                SizedBox(height: 6),
+                                                const SizedBox(height: 4),
                                                 Text(
-                                                  "₦${formatter.format(v.price)}",
-                                                  style: TextStyle(
-                                                    fontSize: 14,
+                                                  naira(v.price),
+                                                  style: IAText.caption(
                                                     color: (_selectedVariant != null && _selectedVariant!.id != v.id)
-                                                        ? Colors.grey // grey out
-                                                        : Colors.grey.shade700,
+                                                        ? IAColors.grey
+                                                        : IAColors.darkGrey,
                                                   ),
                                                 ),
                                               ],
@@ -387,77 +477,86 @@ class _VendorGridState extends State<VendorGrid> {
                           //   )
                           // ],
                         ),
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                _level(
-                                  Icons.remove,
-                                      () {
-                                    setState(() {
-                                      if (_amount > 1) {
-                                        _amount--;
-                                        _selected = 1;
-                                      }
-                                    });
-                                  },
-                                  isSelected: _selected == 1,
+                        // The Figma puts the stepper beside the button, not
+                        // stacked above it.
+                        child: SafeArea(
+                          top: false,
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    _level(
+                                      Icons.remove,
+                                      _amount > 1
+                                          ? () => setState(() => _amount--)
+                                          : null,
+                                    ),
+                                    SizedBox(
+                                      width: 40,
+                                      child: AnimatedSwitcher(
+                                        duration: const Duration(milliseconds: 160),
+                                        transitionBuilder: (child, animation) =>
+                                            FadeTransition(
+                                          opacity: animation,
+                                          child: ScaleTransition(
+                                              scale: animation, child: child),
+                                        ),
+                                        child: Text(
+                                          _amount.toString(),
+                                          key: ValueKey<int>(_amount),
+                                          textAlign: TextAlign.center,
+                                          style: IAText.subtitle(),
+                                        ),
+                                      ),
+                                    ),
+                                    _level(
+                                      Icons.add,
+                                      () => setState(() => _amount++),
+                                    ),
+                                  ],
                                 ),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                                  child: Text(
-                                    _amount.toString(),
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 14,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: SizedBox(
+                                  height: 50,
+                                  child: ElevatedButton(
+                                    onPressed: () async{
+                                     if(hasVariants){
+                                       EasyLoading.show();
+                                       if(_selectedVariant != null){
+                                         await store.addToCart(itemDetails[index].id!,_selectedVariant!.id!, _amount, context);
+                                         await store.fetchAllCartItems();
+                                         Navigator.pop(context);
+                                         EasyLoading.dismiss();
+                                       }else{
+                                         EasyLoading.dismiss();
+                                         UiUtils.showSnackBarFromTop(context, 'Please select a variant');
+                                       }
+                                     }else{
+                                       EasyLoading.show();
+                                       await store.addToCart(itemDetails[index].id!,null, _amount, context);
+                                       await store.fetchAllCartItems();
+                                       Navigator.pop(context);
+                                       EasyLoading.dismiss();
+                                     }
+                                    },
+                                    child: Text(
+                                      'Add $_amount for ${hasVariants ? variantPrice : totalPrice}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: IAText.body(
+                                          color: IAColors.white,
+                                          weight: FontWeight.w600),
                                     ),
                                   ),
                                 ),
-                                _level(
-                                  Icons.add,
-                                      () {
-                                    setState(() {
-                                      _amount++;
-                                      _selected = 2;
-                                    });
-                                  },
-                                  isSelected: _selected == 2,
-                                ),
-                              ],
-                            ),
-                            3.gap,
-                            SizedBox(
-                              height: 6.5.pH,
-                              width: 100.pW,
-                              child: ElevatedButton(
-                                onPressed: () async{
-                                 if(hasVariants){
-                                   EasyLoading.show();
-                                   if(_selectedVariant != null){
-                                     await store.addToCart(itemDetails[index].id!,_selectedVariant!.id!, _amount, context);
-                                     await store.fetchAllCartItems();
-                                     Navigator.pop(context);
-                                     EasyLoading.dismiss();
-                                   }else{
-                                     EasyLoading.dismiss();
-                                     UiUtils.showSnackBarFromTop(context, 'Please select a variant');
-                                   }
-                                 }else{
-                                   await store.addToCart(itemDetails[index].id!,null, _amount, context);
-                                   await store.fetchAllCartItems();
-                                   Navigator.pop(context);
-                                   EasyLoading.dismiss();
-                                 }
-                                },
-                                child: Text(
-                                  'Add $_amount for ₦${hasVariants ? variantPrice : totalPrice}',
-                                ),
                               ),
-                            ),
-                            4.gap,
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ],
