@@ -46,6 +46,16 @@ workflows:
       xcode: latest
       cocoapods: default
 
+      groups:
+        # Supplies CERTIFICATE_PRIVATE_KEY, the RSA key Apple issues the
+        # distribution certificate against. Apple hands the certificate
+        # back once and only to the holder of the matching private key, so
+        # without it `fetch-signing-files --create` has a certificate it
+        # cannot store and fails with "Cannot save Signing Certificates
+        # without certificate private key". Added as a secure variable in
+        # Codemagic, as a plain PEM block - base64 is rejected.
+        - code-signing
+
       vars:
         BUNDLE_ID: "com.chopper.chopchopafrica"
 
@@ -102,9 +112,7 @@ workflows:
         # already has them — and this one does, as "Chop Chop Direct App
         # Store" — it fetches those instead.
         #
-        # If this fails asking for a certificate private key, add
-        # CERTIFICATE_PRIVATE_KEY to a `code-signing` environment group in
-        # Codemagic and list that group under `environment.groups`.
+        # Needs CERTIFICATE_PRIVATE_KEY from the code-signing group above.
         script: |
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
