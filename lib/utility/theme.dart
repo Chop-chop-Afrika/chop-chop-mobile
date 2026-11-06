@@ -133,6 +133,10 @@ class IATheme {
           borderSide: BorderSide(color: Colors.transparent),
           borderRadius: BorderRadius.all(Radius.circular(9)),
         ),
+        disabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: Colors.transparent),
+          borderRadius: BorderRadius.all(Radius.circular(9)),
+        ),
         focusedErrorBorder: OutlineInputBorder(
           borderSide: BorderSide(color: Colors.transparent), // transparent
           borderRadius: BorderRadius.all(Radius.circular(9)),
@@ -181,7 +185,12 @@ class IATheme {
         backgroundColor: Colors.transparent,
         shadowColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
-        foregroundColor: Colors.transparent,
+        // foregroundColor is what tints the icons in an AppBar, not just its
+        // background, so transparent here painted every Material icon in
+        // every app bar invisible - the close button that leaves a search,
+        // and the one that leaves the Stripe payment screen, among them.
+        // UiUtils.backButton only stayed visible because it hardcodes black.
+        foregroundColor: IAColors.black,
         titleTextStyle: GoogleFonts.plusJakartaSans(
           color: IAColors.black,
           fontSize: 5.8.pW,

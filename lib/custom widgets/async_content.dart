@@ -1,6 +1,8 @@
 import 'package:chop_chop_africa/utility/sizes.dart';
 import 'package:flutter/material.dart';
 
+import 'refreshable.dart';
+
 import '../utility/iacolors.dart';
 import '../utility/uiutils.dart';
 
@@ -24,6 +26,11 @@ class AsyncContent extends StatelessWidget {
   /// better than a lone circle.
   final Widget? loadingPlaceholder;
 
+  /// Where the empty state sits. Dead centre suits a short screen, but on a
+  /// tall one with nothing else on it the message ends up marooned in the
+  /// middle of a lot of white.
+  final Alignment emptyAlignment;
+
   const AsyncContent({
     super.key,
     required this.loading,
@@ -33,6 +40,7 @@ class AsyncContent extends StatelessWidget {
     this.emptyMessage,
     this.emptyIcon = Icons.inbox_outlined,
     this.loadingPlaceholder,
+    this.emptyAlignment = Alignment.center,
   });
 
   @override
@@ -52,7 +60,16 @@ class AsyncContent extends StatelessWidget {
     return builder(context);
   }
 
-  Widget _empty(BuildContext context) => Center(
+  /// Scrollable even though it holds one short column, so a screen wrapped in
+  /// a [Refreshable] can still be pulled when it is empty — which is exactly
+  /// when the user most wants to try again.
+  Widget _empty(BuildContext context) => LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          physics: Refreshable.physics,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Align(
+              alignment: emptyAlignment,
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 10.pW, vertical: 4.pH),
           child: Column(
@@ -72,7 +89,68 @@ class AsyncContent extends StatelessWidget {
             ],
           ),
         ),
+      ),
+          ),
+        ),
       );
+}
+
+/// Sweeps a soft highlight across whatever it wraps.
+///
+/// The skeletons were flat grey rectangles that never moved, which reads as
+/// a broken layout rather than as something on its way. One controller
+/// drives the whole group, so a screenful of boxes costs a single animation.
+class Shimmer extends StatefulWidget {
+  final Widget child;
+
+  const Shimmer({super.key, required this.child});
+
+  @override
+  State<Shimmer> createState() => _ShimmerState();
+}
+
+class _ShimmerState extends State<Shimmer>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1300),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Honours the system "reduce motion" setting, and keeps widget tests
+    // that pumpAndSettle from waiting on a loop that never ends.
+    if (MediaQuery.maybeOf(context)?.disableAnimations ?? false) {
+      return widget.child;
+    }
+    return AnimatedBuilder(
+      animation: _controller,
+      child: widget.child,
+      builder: (context, child) => ShaderMask(
+        blendMode: BlendMode.srcATop,
+        shaderCallback: (bounds) {
+          // Travels from just off one edge to just off the other.
+          final double t = _controller.value * 2.4 - 1.2;
+          return LinearGradient(
+            begin: Alignment(t - 0.35, -0.3),
+            end: Alignment(t + 0.35, 0.3),
+            colors: [
+              Colors.grey.shade200,
+              Colors.grey.shade100,
+              Colors.grey.shade200,
+            ],
+          ).createShader(bounds);
+        },
+        child: child,
+      ),
+    );
+  }
 }
 
 /// A grey block that stands in for content while it loads. Several lists use
@@ -117,10 +195,13 @@ class SkeletonList extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => ListView(
-        padding: padding,
-        children: [
-          for (int i = 0; i < count; i++) SkeletonBox(height: itemHeight),
-        ],
+  Widget build(BuildContext context) => Shimmer(
+        child: ListView(
+          padding: padding,
+          physics: const NeverScrollableScrollPhysics(),
+          children: [
+            for (int i = 0; i < count; i++) SkeletonBox(height: itemHeight),
+          ],
+        ),
       );
 }
