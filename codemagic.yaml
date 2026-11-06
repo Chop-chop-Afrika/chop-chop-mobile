@@ -1,0 +1,130 @@
+# Codemagic CI/CD — https://docs.codemagic.io/yaml-basic-configuration/yaml-getting-started/
+#
+# Builds a signed iOS release and sends it to TestFlight.
+#
+# Codemagic signs the build with an App Store Connect API key rather than a
+# certificate we export and upload by hand. It fetches the distribution
+# certificate and the provisioning profile from Apple at build time, and
+# creates them if they do not exist yet. That means no .p12 to export, and
+# nothing to re-upload when the certificate expires in a year.
+#
+# Two things must exist on Codemagic's side before this runs, both named
+# exactly as written below:
+#   - an App Store Connect API key added under
+#     Settings > Integrations > Developer Portal, named `chopchop-asc-key`
+#   - an app record in App Store Connect for com.chopper.chopchopafrica
+
+workflows:
+  ios-testflight:
+    name: iOS release to TestFlight
+    # The free personal-account machine. 500 macOS minutes a month, and a
+    # Flutter iOS archive runs about 15, so roughly 30 builds before it bites.
+    instance_type: mac_mini_m2
+    # A clean Flutter iOS build with pods is ~15 min. 60 is headroom, not a
+    # target — the cap exists so a hung build cannot eat the month's minutes.
+    max_build_duration: 60
+
+    integrations:
+      # Must match the name given to the key in Codemagic exactly, including
+      # case. A mismatch fails the build at startup with "integration not
+      # found" before anything is checked out.
+      app_store_connect: chopchop-asc-key
+
+    environment:
+      # Pinned to the version this project is developed against rather than
+      # `stable`, so a Flutter release cannot change what CI produces without
+      # us choosing it. Bump deliberately.
+      flutter: 3.47.5
+      xcode: latest
+      cocoapods: default
+
+      ios_signing:
+        # app_store covers both TestFlight and App Store submission.
+        distribution_type: app_store
+        bundle_identifier: com.chopper.chopchopafrica
+
+      vars:
+        BUNDLE_ID: "com.chopper.chopchopafrica"
+
+    triggering:
+      # Nothing builds automatically yet. Turn this on once a build has gone
+      # green by hand — otherwise every push burns minutes proving the same
+      # thing. Then uncomment the events and pick the branch below.
+      # events:
+      #   - push
+      # branch_patterns:
+      #   - pattern: main
+      #     include: true
+      #     source: true
+      cancel_previous_builds: true
+
+    scripts:
+      - name: Get Flutter packages
+        script: flutter pub get
+
+      - name: Analyze
+        # Cheap, deterministic, and catches a broken merge before we spend
+        # ten minutes archiving it.
+        script: flutter analyze lib/ test/
+
+      - name: Test
+        # Not allowed to fail the build yet. Several of these are golden
+        # tests, which compare rendered pixels and are sensitive to the
+        # machine and Flutter version that produced the reference images —
+        # ours were generated locally. Once a CI run confirms they match,
+        # drop `ignore_failure` so a real regression blocks the release.
+        script: flutter test
+        ignore_failure: true
+
+      - name: Install pods
+        script: find . -name "Podfile" -execdir pod install \;
+
+      - name: Set up code signing on the Xcode project
+        # Rewrites the signing settings in Runner.xcodeproj to point at the
+        # profile Codemagic just fetched, and writes the export options the
+        # build step reads. The project's Release config currently hardcodes
+        # PROVISIONING_PROFILE_SPECIFIER = "Chop Chop Direct App Store";
+        # this overwrites that for the CI build only, so the two cannot
+        # drift apart. Nothing in the repo changes.
+        script: xcode-project use-profiles
+
+      - name: Build IPA
+        # The build name comes from pubspec.yaml (1.0.0). Only the build
+        # number is set here, from Codemagic's own counter, because App
+        # Store Connect rejects a build number it has already seen.
+        #
+        # If builds were ever uploaded by hand with a higher number, swap
+        # PROJECT_BUILD_NUMBER for the line below, which asks App Store
+        # Connect what the last one was. It needs the app's numeric Apple ID
+        # in vars as APP_STORE_APPLE_ID:
+        #   --build-number=$(($(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID") + 1))
+        script: |
+          flutter build ipa --release \
+            --build-number=$PROJECT_BUILD_NUMBER \
+            --export-options-plist=/Users/builder/export_options.plist
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      # Keep these even on success — when signing fails, the real reason is
+      # in the xcodebuild log, not in the step that reports the failure.
+      - /tmp/xcodebuild_logs/*.log
+      - build/ios/archive/*.xcarchive
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        # Leave off until a build has actually landed in TestFlight. Adding
+        # a group that does not exist fails the publish step after a
+        # successful 15-minute build, which is a waste of minutes.
+        # beta_groups:
+        #   - Internal testers
+        submit_to_app_store: false
+
+      email:
+        recipients:
+          # Replace with the address that should hear about builds.
+          - CHANGE_ME@example.com
+        notify:
+          success: true
+          failure: true

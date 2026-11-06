@@ -49,3 +49,6 @@ app.*.map.json
 
 # Design references and scratch material shared with Claude
 claude_stuff/
+
+# Golden-test diff output, written on a failing run
+test/failures/
