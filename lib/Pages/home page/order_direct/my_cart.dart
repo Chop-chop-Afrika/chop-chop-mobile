@@ -1,11 +1,13 @@
 import 'package:chop_chop_africa/Pages/home%20page/order_direct/cart_details.dart';
 import 'package:chop_chop_africa/backend/store_provider.dart';
-import 'package:chop_chop_africa/utility/sizes.dart';
 import 'package:chop_chop_africa/utility/uiutils.dart';
+import 'package:chop_chop_africa/custom%20widgets/order_tile.dart';
+import 'package:chop_chop_africa/custom%20widgets/refreshable.dart';
+import 'package:chop_chop_africa/utility/money.dart';
+import 'package:chop_chop_africa/utility/typography.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 
 
 class MyCart extends StatefulWidget {
@@ -16,14 +18,6 @@ class MyCart extends StatefulWidget {
 }
 
 class _MyCartState extends State<MyCart> {
-  final formatter = NumberFormat("#,##0.00", "en_US");
-  String cutUnwantedPart(String name) {
-    if (name.length > 16) {
-      return name.trim().replaceRange(16, null, '...');
-    }
-    return name;
-  }
-  String placeHolderLogo = 'https://freesvg.org/img/chef-restaurant-logo-publicdomainvectors.png';
   @override
   void initState() {
     super.initState();
@@ -74,7 +68,9 @@ class _MyCartState extends State<MyCart> {
     return Consumer<StoreProvider>(
       builder: (context,store,child) {
         var cartStores = store.getCartItems?.data?.carts;
-        return Padding(
+        return Refreshable(
+          onRefresh: _refresh,
+          child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 12.0),
           child: cartStores != null && cartStores.isNotEmpty
               ? Column(children: [
@@ -90,69 +86,58 @@ class _MyCartState extends State<MyCart> {
                     ),
                   ),
                   Expanded(child: ListView.builder(
+            physics: Refreshable.physics,
             itemCount: cartStores.length,
               itemBuilder: (context, index){
-              return GestureDetector(
-                onTap: (){
-                  Navigator.push(context, MaterialPageRoute(builder: (context){
-                    return CartDetails(orderId: cartStores[index].orderId!,);
+              final cart = cartStores[index];
+              final int items = cart.items?.length ?? 0;
+              return OrderTile(
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) {
+                    return CartDetails(orderId: cart.orderId!);
                   }));
                 },
-                child: ListTile(
-                  leading: Container(
-                    height: 15.pW,
-                    width: 15.pW,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14),
-                      image: DecorationImage(image: NetworkImage(cartStores[index].store?.logo??placeHolderLogo),
-                      fit: BoxFit.cover
-                      )
-                    ),
-                  ),
-                  title: UiUtils.subTitles(cutUnwantedPart(cartStores[index].store?.name??''), 14),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                imageUrl: cart.store?.logo,
+                title: cart.store?.name ?? '',
+                details: [
+                  Row(
                     children: [
-                      Row(
-                        children: [
-                          SvgPicture.asset('assets/svg/bicycle 1.svg'),
-                          1.gap,
-                          Text(cartStores[index].store?.deliveryTime??'',
-                          style: TextStyle(
-                            fontSize: 12,
-                          ),
-                          )
-                        ],
-                      ),
-                      Text('${cartStores[index].items?.length} items',
-                      style: TextStyle(
-                      fontSize: 13,
-                  ),
-                      )
-                    ],
-                  ),
-                  trailing: Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      Text('₦${formatter.format(cartStores[index].subtotal)}',
-                      style: TextStyle(
-                        fontSize: 15
-                      ),
+                      SvgPicture.asset('assets/svg/bicycle 1.svg', height: 14),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: OrderTileLine(cart.store?.deliveryTime ?? ''),
                       ),
                     ],
                   ),
-                ),
+                  OrderTileLine('$items item${items == 1 ? '' : 's'}'),
+                ],
+                trailing: Text(naira(cart.subtotal),
+                    style: IAText.subtitle()),
               );
               }
           )),
                 ])
-              : Center(
-                  child: Text('No Items',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 23)),
+              // Scrollable so an empty cart can still be pulled to refresh.
+              : LayoutBuilder(
+                  builder: (context, constraints) => SingleChildScrollView(
+                    physics: Refreshable.physics,
+                    child: ConstrainedBox(
+                      constraints:
+                          BoxConstraints(minHeight: constraints.maxHeight),
+                      child: Center(
+                        child: Text('No Items',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 23)),
+                      ),
+                    ),
+                  ),
                 ),
+        ),
         );
       }
     );
   }
+
+  Future<void> _refresh() =>
+      Provider.of<StoreProvider>(context, listen: false).fetchAllCartItems();
 }

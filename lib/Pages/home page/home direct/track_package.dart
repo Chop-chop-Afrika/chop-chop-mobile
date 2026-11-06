@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:chop_chop_africa/utility/sizes.dart';
+import 'package:chop_chop_africa/custom%20widgets/refreshable.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -160,7 +161,7 @@ class _TrackPackageState extends State<TrackPackage> {
               ? PackagePhase.stepFromPhase(_phase)
               : PackagePhase.stepFromStatus(pkg.status);
 
-          return RefreshIndicator(
+          return Refreshable(
             onRefresh: () => _load(silent: true),
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 20),

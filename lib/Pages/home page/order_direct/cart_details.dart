@@ -1,8 +1,10 @@
 import 'package:chop_chop_africa/backend/store_provider.dart';
+import 'package:chop_chop_africa/custom%20widgets/order_tile.dart';
+import 'package:chop_chop_africa/utility/money.dart';
 import 'package:chop_chop_africa/utility/sizes.dart';
+import 'package:chop_chop_africa/utility/typography.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../../utility/iacolors.dart';
 import '../../../utility/uiutils.dart';
@@ -22,13 +24,6 @@ class _CartDetailsState extends State<CartDetails> {
   bool _isLoading = false;
   @override
   Widget build(BuildContext context) {
-    final formatter = NumberFormat("#,##0.00", "en_US");
-    String cutUnwantedPart(String name) {
-      if (name.length > 16) {
-        return name.trim().replaceRange(16, null, '...');
-      }
-      return name;
-    }
     return Consumer<StoreProvider>(
       builder: (context,store,child) {
         // find the cart by its id
@@ -65,88 +60,71 @@ class _CartDetailsState extends State<CartDetails> {
                 itemCount: cartItems.length,
                 itemBuilder: (context,index) {
                   var allCartItems = cartItems[index];
-                  return Stack(
-                    children: [
-                      Card(
-                        elevation: 1,
-                        color: Theme.of(context).scaffoldBackgroundColor,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(9),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.only(left: 8.0,top: 8,bottom: 8),
-                          child: ListTile(
-                            leading: Container(
-                              height: 15.pW,
-                              width: 15.pW,
-                              decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(14),
-                                  image: DecorationImage(image: NetworkImage(allCartItems.product!.banner!),
-                                      fit: BoxFit.cover
-                                  ),
-                              ),
-                            ),
-                            title: UiUtils.subTitles(cutUnwantedPart(allCartItems.product!.name!), 14),
-                            subtitle: Text('${allCartItems.quantity} items ● ₦${formatter.format(allCartItems.totalPrice)}',
-                            style: TextStyle(
-                              fontSize: 13
-                            ),
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                _level(Icons.remove,
-                                        ()async{
-                                  setState(() {
-                                    if (allCartItems.quantity! > 1) {
-                                      allCartItems.quantity = allCartItems.quantity! - 1;
-                                      allCartItems.isSelected = 1;
-                                    }
-                                  });
-                                  await store.manipulateProductQuantity(allCartItems.quantity!, allCartItems.id!);
-                                        },
-                                  isSelected: allCartItems.isSelected == 1,
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                                  child: Text(allCartItems.quantity.toString(),
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 14
-                                  ),
-                                  ),
-                                ),
-                                _level(Icons.add, ()async{
-                                  setState(() {
-                                    allCartItems.quantity = allCartItems.quantity! + 1;
-                                    allCartItems.isSelected = 2;
-                                  });
-                                  await store.manipulateProductQuantity(allCartItems.quantity!, allCartItems.id!);
-                                },
-                                  isSelected: allCartItems.isSelected == 2,
-                                ),
-
-                              ],
-                            )
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                          top: 0,
-                          right: 0,
-                          child: IconButton(
-                              onPressed: () async {
-                                EasyLoading.show();
-                                await store.deleteProductFromCart(
-                                  widget.orderId,
-                                  allCartItems.product!.id!,
-                                );
-                                EasyLoading.dismiss();
-                              },
-                              icon: Icon(Icons.close, size: 15,)
-                          )
-                      )
+                  return OrderTile(
+                    imageUrl: allCartItems.product?.banner,
+                    title: allCartItems.product?.name ?? '',
+                    details: [
+                      OrderTileLine(naira(allCartItems.totalPrice),
+                          weight: FontWeight.w600),
                     ],
+                    // Was absolutely positioned over the card's top-right
+                    // corner, overlapping the name it sat on top of.
+                    cornerAction: InkWell(
+                      onTap: () async {
+                        EasyLoading.show();
+                        await store.deleteProductFromCart(
+                          widget.orderId,
+                          allCartItems.product!.id!,
+                        );
+                        EasyLoading.dismiss();
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 8),
+                        child: Icon(Icons.close,
+                            size: 16, color: IAColors.darkGrey),
+                      ),
+                    ),
+                    // The stepper used to be crammed into the ListTile's
+                    // trailing slot, where it competed with the name for
+                    // width. Across the foot of the card it has room.
+                    footer: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Quantity', style: IAText.caption()),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _level(Icons.remove, () async {
+                              setState(() {
+                                if (allCartItems.quantity! > 1) {
+                                  allCartItems.quantity =
+                                      allCartItems.quantity! - 1;
+                                  allCartItems.isSelected = 1;
+                                }
+                              });
+                              await store.manipulateProductQuantity(
+                                  allCartItems.quantity!, allCartItems.id!);
+                            }, isSelected: allCartItems.isSelected == 1),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 14.0),
+                              child: Text(allCartItems.quantity.toString(),
+                                  style: IAText.body(
+                                      weight: FontWeight.w700)),
+                            ),
+                            _level(Icons.add, () async {
+                              setState(() {
+                                allCartItems.quantity =
+                                    allCartItems.quantity! + 1;
+                                allCartItems.isSelected = 2;
+                              });
+                              await store.manipulateProductQuantity(
+                                  allCartItems.quantity!, allCartItems.id!);
+                            }, isSelected: allCartItems.isSelected == 2),
+                          ],
+                        ),
+                      ],
+                    ),
                   );
                 }
               ),

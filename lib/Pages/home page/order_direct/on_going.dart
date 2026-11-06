@@ -1,6 +1,7 @@
 import 'package:chop_chop_africa/Pages/home%20page/order_direct/order_card.dart';
 import 'package:chop_chop_africa/Pages/home%20page/order_direct/track_order.dart';
 import 'package:chop_chop_africa/utility/sizes.dart';
+import 'package:chop_chop_africa/custom%20widgets/refreshable.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -102,7 +103,7 @@ class _OnGoingState extends State<OnGoing> {
         final bool loading = provider.loadingOrders[_status] == true;
 
         if (items.isEmpty) {
-          return RefreshIndicator(
+          return Refreshable(
             onRefresh: () async => await provider.getOrders(_status, refresh: true),
             child: ListView(
               children: [
@@ -116,7 +117,7 @@ class _OnGoingState extends State<OnGoing> {
           );
         }
 
-        return RefreshIndicator(
+        return Refreshable(
           onRefresh: () async => await provider.getOrders(_status, refresh: true),
           child: ListView.builder(
             controller: _scrollController,

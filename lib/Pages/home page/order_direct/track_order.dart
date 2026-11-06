@@ -1,4 +1,5 @@
 import 'package:chop_chop_africa/utility/sizes.dart';
+import 'package:chop_chop_africa/custom%20widgets/refreshable.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -105,7 +106,7 @@ class _TrackOrderState extends State<TrackOrder> {
           final bool failed = OrderPhase.isFailed(_phase) ||
               OrderPhase.isFailedStatus(order.status);
 
-          return RefreshIndicator(
+          return Refreshable(
             onRefresh: () async => await orderProvider
                 .getOrderDetails(widget.orderId, silent: true),
             child: Padding(

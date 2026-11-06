@@ -1,5 +1,7 @@
 import 'package:chop_chop_africa/Pages/home%20page/order_direct/raise_dispute.dart';
 import 'package:chop_chop_africa/utility/sizes.dart';
+import 'package:chop_chop_africa/custom%20widgets/refreshable.dart';
+import 'package:chop_chop_africa/utility/money.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:intl/intl.dart';
@@ -38,8 +40,12 @@ class _ViewOrderState extends State<ViewOrder> {
     });
   }
 
-  String _money(num? amount) =>
-      '£${NumberFormat("#,##0.00", "en_GB").format(amount ?? 0)}';
+  // This read '£1,250.00' in en_GB. The app bills in naira.
+  String _money(num? amount) => naira(amount);
+
+  Future<void> _refresh() =>
+      Provider.of<OrderProvider>(context, listen: false)
+          .getOrderDetails(widget.order.id!, silent: true);
 
   String _date(String? raw) {
     if (raw == null) return '';
@@ -89,9 +95,12 @@ class _ViewOrderState extends State<ViewOrder> {
             final int itemCount =
                 items.fold<int>(0, (sum, i) => sum + (i.quantity ?? 0));
 
-            return Padding(
+            return Refreshable(
+              onRefresh: _refresh,
+              child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: SingleChildScrollView(
+                physics: Refreshable.physics,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -112,6 +121,7 @@ class _ViewOrderState extends State<ViewOrder> {
                     5.gap,
                   ],
                 ),
+              ),
               ),
             );
           },

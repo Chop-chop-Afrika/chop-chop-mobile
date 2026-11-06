@@ -2,6 +2,7 @@ import 'package:chop_chop_africa/backend/models/get_active_package_model.dart';
 import 'package:chop_chop_africa/backend/store_provider.dart';
 import 'package:chop_chop_africa/utility/iacolors.dart';
 import 'package:chop_chop_africa/utility/sizes.dart';
+import 'package:chop_chop_africa/custom%20widgets/refreshable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
@@ -31,6 +32,16 @@ class _ActivePackageHistoryState extends State<ActivePackageHistory> {
     if (widget.status == 'active') {
       Provider.of<PackageProvider>(context, listen: false).loadPendingPackage();
     }
+  }
+
+  Future<void> _refresh() async {
+    await Future.wait([
+      Provider.of<StoreProvider>(context, listen: false)
+          .getPackageStatus(widget.status),
+      if (widget.status == 'active')
+        Provider.of<PackageProvider>(context, listen: false)
+            .loadPendingPackage(),
+    ]);
   }
 
   /// Banner for a booking whose payment has not been confirmed yet.
@@ -107,8 +118,11 @@ class _ActivePackageHistoryState extends State<ActivePackageHistory> {
           }
           grouped[dateKey]!.add(store);
         }
-        return stores.activePackage.isNotEmpty?
+        return Refreshable(
+          onRefresh: _refresh,
+          child: stores.activePackage.isNotEmpty?
         ListView.builder(
+            physics: Refreshable.physics,
             itemCount: grouped.length + 1,
             itemBuilder: (context, rawIndex){
               // The pending-payment banner sits above the dated groups.
@@ -138,6 +152,7 @@ class _ActivePackageHistoryState extends State<ActivePackageHistory> {
 
             }
         ):ListView(
+          physics: Refreshable.physics,
           children: [
             _pendingBanner(),
             SizedBox(height: 20.pH),
@@ -151,6 +166,7 @@ class _ActivePackageHistoryState extends State<ActivePackageHistory> {
               ),
             ),
           ],
+        ),
         );
       }
     );
