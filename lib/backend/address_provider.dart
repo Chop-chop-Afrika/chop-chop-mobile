@@ -9,7 +9,6 @@ import 'package:chop_chop_africa/backend/models/register_error.dart';
 import 'package:chop_chop_africa/backend/models/success_model.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'api_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

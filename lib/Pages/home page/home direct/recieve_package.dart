@@ -12,7 +12,6 @@ import 'package:chop_chop_africa/Pages/home%20page/home%20direct/track_package.d
 import 'package:chop_chop_africa/backend/package_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:loading_indicator/loading_indicator.dart';
-import '../../../backend/store_provider.dart';
 import '../../../utility/iacolors.dart';
 
 class ReceivePackage extends StatefulWidget {

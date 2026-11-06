@@ -1,5 +1,4 @@
 import 'package:chop_chop_africa/Pages/home%20page/order_direct/order_card.dart';
-import 'package:chop_chop_africa/backend/models/get_cart_model.dart';
 import 'package:chop_chop_africa/backend/models/order_detail_model.dart';
 import 'package:chop_chop_africa/custom%20widgets/order_tile.dart';
 import 'package:chop_chop_africa/utility/money.dart';

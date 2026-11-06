@@ -101,10 +101,6 @@ class _ActivePackageHistoryState extends State<ActivePackageHistory> {
       },
     );
   }
-  String _formatNumberWithCommas(dynamic number) {
-    final formatter = NumberFormat('#,###');
-    return formatter.format(number);
-  }
   @override
   Widget build(BuildContext context) {
     return Consumer<StoreProvider>(

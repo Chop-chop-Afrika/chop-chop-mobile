@@ -1,6 +1,5 @@
 import 'package:chop_chop_africa/backend/address_provider.dart';
 import 'package:chop_chop_africa/backend/profile_provider.dart';
-import 'package:chop_chop_africa/backend/store_provider.dart';
 import 'package:chop_chop_africa/utility/sizes.dart';
 import 'package:chop_chop_africa/utility/uiutils.dart';
 import 'package:flutter/material.dart';

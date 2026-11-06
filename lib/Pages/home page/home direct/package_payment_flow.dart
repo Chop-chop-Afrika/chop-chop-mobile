@@ -3,7 +3,6 @@ import 'package:chop_chop_africa/utility/sizes.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../backend/models/package_model.dart';
 import '../../../backend/order_provider.dart';
 import '../../../backend/package_provider.dart';
 import '../../../utility/iacolors.dart';

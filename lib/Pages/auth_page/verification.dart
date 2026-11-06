@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:chop_chop_africa/Pages/Delivery/delivery_intro.dart';
 import 'package:chop_chop_africa/backend/auth_provider.dart';
 import 'package:chop_chop_africa/utility/sizes.dart';
 import 'package:flutter/material.dart';

@@ -68,7 +68,15 @@ workflows:
       - name: Analyze
         # Cheap, deterministic, and catches a broken merge before we spend
         # ten minutes archiving it.
-        script: flutter analyze lib/ test/
+        #
+        # --no-fatal-infos because `flutter analyze` fails on any issue at
+        # all by default, and this project carries ~780 info-level lints
+        # (avoid_print, unnecessary_this, deprecated_member_use) inherited
+        # from code written before the linter was tightened. Blocking a
+        # release on those would mean either never shipping or a thousand-
+        # line cleanup commit. Errors and warnings are still fatal, so dead
+        # code and unused imports cannot creep back in unnoticed.
+        script: flutter analyze --no-fatal-infos lib/ test/
 
       - name: Test
         # Not allowed to fail the build yet. Several of these are golden

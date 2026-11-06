@@ -4,7 +4,6 @@ import 'package:chop_chop_africa/backend/models/get_cart_model.dart';
 import 'package:chop_chop_africa/backend/models/productCategoryModel.dart';
 import 'package:chop_chop_africa/backend/models/search_product_model.dart';
 import 'package:chop_chop_africa/backend/models/search_store_model.dart';
-import 'package:chop_chop_africa/backend/models/send_and_receive_package.dart';
 import 'package:chop_chop_africa/backend/models/store_detail_model.dart';
 import 'package:chop_chop_africa/backend/models/store_information_model.dart';
 import 'package:chop_chop_africa/backend/models/success_model.dart';
@@ -12,7 +11,6 @@ import 'package:chop_chop_africa/backend/models/top_stores_model.dart';
 import 'package:chop_chop_africa/backend/models/user_stores_model.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'api_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -21,7 +19,6 @@ import '../env/env.dart';
 import '../main.dart';
 import '../utility/uiutils.dart';
 import 'models/error_model.dart';
-import 'models/register_error.dart';
 
 class StoreProvider with ChangeNotifier{
 
@@ -496,7 +493,6 @@ class StoreProvider with ChangeNotifier{
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         jsonResponse = jsonDecode(response.body);
-        final details = SuccessModel.fromJson(jsonResponse);
         // Refresh cart items after deletion
         await fetchAllCartItems();
         notifyListeners();

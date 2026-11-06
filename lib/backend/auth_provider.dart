@@ -10,7 +10,6 @@ import 'package:chop_chop_africa/backend/notification_service.dart';
 import 'package:chop_chop_africa/backend/socket_service.dart';
 import 'package:chop_chop_africa/main.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'api_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../Pages/home page/main_home.dart';
