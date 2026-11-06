@@ -8,6 +8,14 @@
 # creates them if they do not exist yet. That means no .p12 to export, and
 # nothing to re-upload when the certificate expires in a year.
 #
+# Signing is driven by the app-store-connect CLI in the scripts below, not
+# by an `ios_signing:` block in the environment. That block only matches
+# against profiles already uploaded to Codemagic's own store - it never
+# reaches Apple and never creates anything - so with nothing uploaded it
+# fails before the first script with "No matching profiles found for bundle
+# identifier". The two approaches also conflict: the block is evaluated
+# first, so leaving it in means the CLI never gets to run.
+#
 # Two things must exist on Codemagic's side before this runs, both named
 # exactly as written below:
 #   - an App Store Connect API key added under
@@ -37,11 +45,6 @@ workflows:
       flutter: 3.47.5
       xcode: latest
       cocoapods: default
-
-      ios_signing:
-        # app_store covers both TestFlight and App Store submission.
-        distribution_type: app_store
-        bundle_identifier: com.chopper.chopchopafrica
 
       vars:
         BUNDLE_ID: "com.chopper.chopchopafrica"
@@ -79,10 +82,33 @@ workflows:
       - name: Install pods
         script: find . -name "Podfile" -execdir pod install \;
 
+      - name: Initialize the keychain
+        # A throwaway keychain for this build. Signing certificates have to
+        # live in one, and the machine is destroyed afterwards.
+        script: keychain initialize
+
+      - name: Fetch signing files
+        # Talks to Apple with the App Store Connect API key from the
+        # integration above. --create makes the distribution certificate and
+        # the App Store profile if the account has none; if the account
+        # already has them — and this one does, as "Chop Chop Direct App
+        # Store" — it fetches those instead.
+        #
+        # If this fails asking for a certificate private key, add
+        # CERTIFICATE_PRIVATE_KEY to a `code-signing` environment group in
+        # Codemagic and list that group under `environment.groups`.
+        script: |
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+
+      - name: Add the certificate to the keychain
+        script: keychain add-certificates
+
       - name: Set up code signing on the Xcode project
         # Rewrites the signing settings in Runner.xcodeproj to point at the
-        # profile Codemagic just fetched, and writes the export options the
-        # build step reads. The project's Release config currently hardcodes
+        # profile just fetched, and writes the export options the build step
+        # reads. The project's Release config hardcodes
         # PROVISIONING_PROFILE_SPECIFIER = "Chop Chop Direct App Store";
         # this overwrites that for the CI build only, so the two cannot
         # drift apart. Nothing in the repo changes.
